@@ -1,27 +1,26 @@
-from pydantic_settings import BaseSettings
-from typing import Optional
+import os
+from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Database
-    db_name: str
-    db_user: str
-    db_password: str
-    db_host: str = "localhost"
-    db_port: int = 5432
-    
-    # JWT
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 120
-    
-    # App
-    app_name: str = "Funny Backend API"
-    app_version: str = "1.0.0"
-    debug: bool = True
-    
+    """
+    Configurações da aplicação.
+    Carrega variáveis de ambiente automaticamente.
+    """
+
+    # Banco de dados
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+    # Se não houver DATABASE_URL, usa SQLite local para testes
+
+    # Aqui você pode adicionar outras configs que tiver no projeto
+    # Exemplo: chave JWT, debug, etc.
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "changeme")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
+
     class Config:
-        env_file = ".env"
+        env_file = ".env"  # permite usar variáveis de um arquivo .env local
 
 
+# Instância global para usar em toda a aplicação
 settings = Settings()

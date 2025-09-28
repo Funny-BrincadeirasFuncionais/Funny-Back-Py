@@ -1,5 +1,5 @@
 import os
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -12,8 +12,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./test.db")
     # Se não houver DATABASE_URL, usa SQLite local para testes
 
-    # Aqui você pode adicionar outras configs que tiver no projeto
-    # Exemplo: chave JWT, debug, etc.
+    # JWT e outros
     JWT_SECRET: str = os.getenv("JWT_SECRET", "changeme")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"

@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 120
     
+    # AI/OpenAI
+    openai_api_key: str = ""
+    
     # App
     app_name: str = "Funny Backend API"
     app_version: str = "1.0.0"

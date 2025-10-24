@@ -26,8 +26,8 @@ COPY . /app
 # Garantir permissão do script de entrada
 RUN chmod +x /app/entrypoint.sh
 
-
-ENV PORT=5432
+# Variável padrão (o Render define $PORT automaticamente)
+ENV PORT=0000
 
 EXPOSE ${PORT}
 

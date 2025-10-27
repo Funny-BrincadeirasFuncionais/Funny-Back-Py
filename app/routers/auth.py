@@ -14,27 +14,35 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 def register(user_data: UsuarioCreate, db: Session = Depends(get_db)):
     """Registrar novo usuário"""
     
-    # Verificar se email já existe
-    existing_user = db.query(Usuario).filter(Usuario.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email já cadastrado"
+    try:
+        # Verificar se email já existe
+        existing_user = db.query(Usuario).filter(Usuario.email == user_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email já cadastrado"
+            )
+        
+        # Criar novo usuário
+        hashed_password = hash_password(user_data.senha)
+        new_user = Usuario(
+            nome=user_data.nome,
+            email=user_data.email,
+            senha_hash=hashed_password
         )
-    
-    # Criar novo usuário
-    hashed_password = hash_password(user_data.senha)
-    new_user = Usuario(
-        nome=user_data.nome,
-        email=user_data.email,
-        senha_hash=hashed_password
-    )
-    
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    return new_user
+        
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        
+        return new_user
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno do servidor: {str(e)}"
+        )
 
 
 @router.post("/login", response_model=Token)

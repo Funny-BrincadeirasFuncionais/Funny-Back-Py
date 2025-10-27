@@ -1,0 +1,337 @@
+{
+  "info": {
+    "name": "Funny Back API - Render",
+    "_postman_id": "8d2e0f6b-3c3a-4b6d-9a9f-collection",
+    "description": "Coleção de requests para a API Funny deployada no Render",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://funny-back-py.onrender.com" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Root",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/"
+      }
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registrar usuário",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Usuário Demo\",\n  \"email\": \"demo@example.com\",\n  \"senha\": \"SenhaForte123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login (pegar access_token)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@example.com\",\n  \"senha\": \"SenhaForte123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Responsáveis",
+      "item": [
+        {
+          "name": "Listar responsáveis",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/responsaveis/"
+          }
+        },
+        {
+          "name": "Criar responsável",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria da Silva\",\n  \"email\": \"maria.silva@example.com\",\n  \"telefone\": \"11999998888\"\n}"
+            },
+            "url": "{{baseUrl}}/responsaveis/"
+          }
+        },
+        {
+          "name": "Buscar responsável por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/responsaveis/1"
+          }
+        },
+        {
+          "name": "Atualizar responsável",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefone\": \"11911112222\"\n}"
+            },
+            "url": "{{baseUrl}}/responsaveis/1"
+          }
+        },
+        {
+          "name": "Deletar responsável",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/responsaveis/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Diagnósticos",
+      "item": [
+        {
+          "name": "Listar diagnósticos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/diagnosticos/"
+          }
+        },
+        {
+          "name": "Criar diagnóstico",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"TEA\"\n}"
+            },
+            "url": "{{baseUrl}}/diagnosticos/"
+          }
+        },
+        {
+          "name": "Buscar diagnóstico por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/diagnosticos/1"
+          }
+        },
+        {
+          "name": "Atualizar diagnóstico",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"TDAH\"\n}"
+            },
+            "url": "{{baseUrl}}/diagnosticos/1"
+          }
+        },
+        {
+          "name": "Deletar diagnóstico",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/diagnosticos/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Atividades",
+      "item": [
+        {
+          "name": "Listar atividades",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/atividades/"
+          }
+        },
+        {
+          "name": "Criar atividade",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Quebra-Cabeça\",\n  \"descricao\": \"Atividade cognitiva com peças grandes\",\n  \"categoria\": \"Cognitiva\",\n  \"nivel_dificuldade\": 2\n}"
+            },
+            "url": "{{baseUrl}}/atividades/"
+          }
+        },
+        {
+          "name": "Buscar atividade por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/atividades/1"
+          }
+        },
+        {
+          "name": "Atualizar atividade",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nivel_dificuldade\": 3\n}"
+            },
+            "url": "{{baseUrl}}/atividades/1"
+          }
+        },
+        {
+          "name": "Deletar atividade",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/atividades/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Crianças",
+      "item": [
+        {
+          "name": "Listar crianças",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/criancas/"
+          }
+        },
+        {
+          "name": "Criar criança",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Pedro\",\n  \"idade\": 8,\n  \"responsavel_id\": 1,\n  \"diagnostico_id\": 1\n}"
+            },
+            "url": "{{baseUrl}}/criancas/"
+          }
+        },
+        {
+          "name": "Buscar criança por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/criancas/1"
+          }
+        },
+        {
+          "name": "Atualizar criança",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idade\": 9\n}"
+            },
+            "url": "{{baseUrl}}/criancas/1"
+          }
+        },
+        {
+          "name": "Deletar criança",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/criancas/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Progresso",
+      "item": [
+        {
+          "name": "Registrar progresso",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pontuacao\": 85,\n  \"observacoes\": \"Boa concentração e execução\",\n  \"concluida\": true,\n  \"crianca_id\": 1,\n  \"atividade_id\": 1\n}"
+            },
+            "url": "{{baseUrl}}/progresso/registrar"
+          }
+        },
+        {
+          "name": "Listar progresso por criança",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/progresso/crianca/1"
+          }
+        },
+        {
+          "name": "Listar progresso por atividade",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/progresso/atividade/1"
+          }
+        },
+        {
+          "name": "Resumo de progresso da criança",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/progresso/crianca/1/resumo"
+          }
+        }
+      ]
+    }
+  ]
+}

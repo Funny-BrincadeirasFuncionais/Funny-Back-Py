@@ -332,6 +332,64 @@
           }
         }
       ]
+    },
+    {
+      "name": "Relatórios IA",
+      "item": [
+        {
+          "name": "Gerar relatório individual de criança",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crianca_id\": 1,\n  \"incluir_progresso\": true,\n  \"incluir_atividades\": true,\n  \"periodo_dias\": null\n}"
+            },
+            "url": "{{baseUrl}}/relatorios-ia/crianca"
+          }
+        },
+        {
+          "name": "Gerar relatório de turma",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incluir_progresso\": true,\n  \"incluir_atividades\": true,\n  \"periodo_dias\": null\n}"
+            },
+            "url": "{{baseUrl}}/relatorios-ia/turma"
+          }
+        },
+        {
+          "name": "Preview dados criança (debug)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/relatorios-ia/crianca/1/preview"
+          }
+        },
+        {
+          "name": "Preview dados turma (debug)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/relatorios-ia/turma/preview"
+          }
+        },
+        {
+          "name": "Health check IA",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/relatorios-ia/health"
+          }
+        }
+      ]
     }
   ]
 }

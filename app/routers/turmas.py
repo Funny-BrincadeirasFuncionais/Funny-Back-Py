@@ -18,7 +18,26 @@ def list_turmas(
 ):
     """Listar todas as turmas"""
     turmas = db.query(Turma).all()
-    return turmas
+    result = []
+    for t in turmas:
+        resp = getattr(t, "responsavel", None)
+        responsavel_dict = None
+        if resp is not None:
+            turma_ids = [tu.id for tu in getattr(resp, "turmas", [])]
+            responsavel_dict = {
+                "id": resp.id,
+                "nome": resp.nome,
+                "email": resp.email,
+                "telefone": resp.telefone,
+                "turmas": turma_ids,
+            }
+        result.append({
+            "id": t.id,
+            "nome": t.nome,
+            "responsavel_id": t.responsavel_id,
+            "responsavel": responsavel_dict,
+        })
+    return result
 
 
 @router.get("/{turma_id}", response_model=TurmaResponse)
@@ -34,7 +53,23 @@ def get_turma(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Turma não encontrada"
         )
-    return turma
+    resp = getattr(turma, "responsavel", None)
+    responsavel_dict = None
+    if resp is not None:
+        turma_ids = [tu.id for tu in getattr(resp, "turmas", [])]
+        responsavel_dict = {
+            "id": resp.id,
+            "nome": resp.nome,
+            "email": resp.email,
+            "telefone": resp.telefone,
+            "turmas": turma_ids,
+        }
+    return {
+        "id": turma.id,
+        "nome": turma.nome,
+        "responsavel_id": turma.responsavel_id,
+        "responsavel": responsavel_dict,
+    }
 
 
 @router.post("/", response_model=TurmaResponse, status_code=status.HTTP_201_CREATED)
@@ -56,7 +91,23 @@ def create_turma(
     db.add(new_turma)
     db.commit()
     db.refresh(new_turma)
-    return new_turma
+    resp = getattr(new_turma, "responsavel", None)
+    responsavel_dict = None
+    if resp is not None:
+        turma_ids = [tu.id for tu in getattr(resp, "turmas", [])]
+        responsavel_dict = {
+            "id": resp.id,
+            "nome": resp.nome,
+            "email": resp.email,
+            "telefone": resp.telefone,
+            "turmas": turma_ids,
+        }
+    return {
+        "id": new_turma.id,
+        "nome": new_turma.nome,
+        "responsavel_id": new_turma.responsavel_id,
+        "responsavel": responsavel_dict,
+    }
 
 
 @router.put("/{turma_id}", response_model=TurmaResponse)
@@ -80,7 +131,23 @@ def update_turma(
 
     db.commit()
     db.refresh(turma)
-    return turma
+    resp = getattr(turma, "responsavel", None)
+    responsavel_dict = None
+    if resp is not None:
+        turma_ids = [tu.id for tu in getattr(resp, "turmas", [])]
+        responsavel_dict = {
+            "id": resp.id,
+            "nome": resp.nome,
+            "email": resp.email,
+            "telefone": resp.telefone,
+            "turmas": turma_ids,
+        }
+    return {
+        "id": turma.id,
+        "nome": turma.nome,
+        "responsavel_id": turma.responsavel_id,
+        "responsavel": responsavel_dict,
+    }
 
 
 @router.delete("/{turma_id}", status_code=status.HTTP_204_NO_CONTENT)

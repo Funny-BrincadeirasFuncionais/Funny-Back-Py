@@ -23,5 +23,5 @@ class ResponsavelResponse(ResponsavelBase):
     # lista de IDs das turmas associadas (evita import circular com schemas.turma)
     turmas: Optional[List[int]] = None
     
-    class Config:
-        from_attributes = True
+    # Pydantic v2: allow parsing from ORM objects' attributes when needed
+    model_config = {"from_attributes": True}

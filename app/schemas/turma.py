@@ -21,5 +21,5 @@ class TurmaResponse(TurmaBase):
     responsavel_id: Optional[int] = None
     responsavel: Optional[ResponsavelResponse] = None
     
-    class Config:
-        from_attributes = True
+    # Pydantic v2: allow parsing from ORM objects' attributes when needed
+    model_config = {"from_attributes": True}

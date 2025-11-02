@@ -192,7 +192,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Quebra-Cabeça\",\n  \"descricao\": \"Atividade cognitiva com peças grandes\",\n  \"categoria\": \"Cognitiva\",\n  \"nivel_dificuldade\": 2\n}"
+              "raw": "{\n  \"categoria\": \"Matemáticas\"\n}"
             },
             "url": "{{baseUrl}}/atividades/"
           }
@@ -215,7 +215,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nivel_dificuldade\": 3\n}"
+              "raw": "{\n  \"categoria\": \"Português\"\n}"
             },
             "url": "{{baseUrl}}/atividades/1"
           }
@@ -293,7 +293,7 @@
       "name": "Progresso",
       "item": [
         {
-          "name": "Registrar progresso",
+          "name": "Registrar mini-jogo (FRONT-END)",
           "request": {
             "method": "POST",
             "header": [
@@ -302,7 +302,23 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pontuacao\": 85,\n  \"observacoes\": \"Boa concentração e execução\",\n  \"concluida\": true,\n  \"crianca_id\": 1,\n  \"atividade_id\": 1\n}"
+              "raw": "{\n  \"pontuacao\": 8,\n  \"categoria\": \"Matemáticas\",\n  \"crianca_id\": 1,\n  \"observacoes\": \"Boa concentração e execução do mini-jogo\"\n}"
+            },
+            "url": "{{baseUrl}}/progresso/registrar-minijogo"
+          },
+          "description": "Endpoint usado pelo front-end ao finalizar um mini-jogo. Cria automaticamente a atividade e registra o progresso. Professor é detectado automaticamente pelo token."
+        },
+        {
+          "name": "Registrar progresso (com atividade existente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pontuacao\": 8,\n  \"observacoes\": \"Boa concentração e execução do mini-jogo\",\n  \"concluida\": true,\n  \"crianca_id\": 1,\n  \"atividade_id\": 1,\n  \"usuario_id\": 1\n}"
             },
             "url": "{{baseUrl}}/progresso/registrar"
           }

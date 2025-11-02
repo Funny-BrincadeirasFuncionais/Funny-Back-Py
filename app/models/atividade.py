@@ -7,10 +7,13 @@ class Atividade(Base):
     __tablename__ = "atividades"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    titulo = Column(String, nullable=False)
-    descricao = Column(Text, nullable=False)
-    categoria = Column(String, nullable=False)
-    nivel_dificuldade = Column(Integer, nullable=False)
+    categoria = Column(String, nullable=False)  # Matemáticas, Português, Lógica ou Cotidiano
+    # Titulo e descricao são opcionais (podem ser gerados no front)
+    titulo = Column(String, nullable=True)  # Opcional - pode ser gerado no front
+    descricao = Column(Text, nullable=True)  # Opcional - pode ser gerado no front
     
     # Relacionamentos
     progressos = relationship("Progresso", back_populates="atividade")
+    
+    # Nota: Validação de categoria feita no schema Pydantic para compatibilidade com SQLite
+    # Cada atividade tem ID único, permitindo que o mesmo aluno/professor faça múltiplas atividades da mesma categoria

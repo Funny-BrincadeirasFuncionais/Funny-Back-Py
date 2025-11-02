@@ -1,13 +1,83 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.models.progresso import Progresso
+from app.models.atividade import Atividade
 from app.schemas.progresso import ProgressoCreate, ProgressoResponse, ProgressoUpdate, ProgressoResumo
+from app.schemas.atividade import AtividadeCreate
 from app.auth.dependencies import get_current_user
 from app.models.usuario import Usuario
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/progresso", tags=["Progresso"])
+
+
+class RegistrarMiniJogoRequest(BaseModel):
+    """Request para registrar um mini-jogo completo
+    O front roda o mini-jogo e envia apenas: nota, categoria e aluno
+    """
+    pontuacao: int = Field(..., ge=0, le=10, description="Pontuação obtida no mini-jogo (0 a 10)")
+    categoria: str = Field(..., description="Categoria do mini-jogo: Matemáticas, Português, Lógica ou Cotidiano")
+    crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
+    observacoes: Optional[str] = Field(None, description="Observações opcionais sobre o desempenho")
+
+
+@router.post("/registrar-minijogo", response_model=ProgressoResponse, status_code=status.HTTP_201_CREATED)
+def registrar_minijogo(
+    request: RegistrarMiniJogoRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Registrar resultado de um mini-jogo completo
+    
+    Este endpoint é usado quando o front-end termina de rodar um mini-jogo.
+    Cria automaticamente a atividade (com ID único) e registra o progresso.
+    
+    - **pontuacao**: Nota obtida (0 a 10)
+    - **categoria**: Matemáticas, Português, Lógica ou Cotidiano
+    - **crianca_id**: ID do aluno que realizou
+    - **usuario_id**: Automático (professor logado)
+    """
+    # Validar categoria
+    categorias_validas = ["Matemáticas", "Português", "Lógica", "Cotidiano"]
+    if request.categoria not in categorias_validas:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Categoria deve ser uma das seguintes: {', '.join(categorias_validas)}"
+        )
+    
+    # Validar pontuação
+    if request.pontuacao < 0 or request.pontuacao > 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Pontuação deve estar entre 0 e 10"
+        )
+    
+    # Criar atividade (cada atividade tem ID único, mesmo que mesma categoria)
+    nova_atividade = Atividade(
+        categoria=request.categoria,
+        titulo=None,  # Gerado no front
+        descricao=None  # Gerado no front
+    )
+    db.add(nova_atividade)
+    db.flush()  # Para obter o ID da atividade
+    
+    # Criar progresso
+    novo_progresso = Progresso(
+        pontuacao=request.pontuacao,
+        observacoes=request.observacoes,
+        concluida=True,  # Se chegou aqui, foi concluída
+        crianca_id=request.crianca_id,
+        atividade_id=nova_atividade.id,
+        usuario_id=current_user.id  # Professor logado
+    )
+    db.add(novo_progresso)
+    db.commit()
+    db.refresh(novo_progresso)
+    
+    return novo_progresso
 
 
 @router.post("/registrar", response_model=ProgressoResponse, status_code=status.HTTP_201_CREATED)
@@ -16,8 +86,18 @@ def registrar_progresso(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Registrar novo progresso"""
-    new_progresso = Progresso(**progresso_data.dict())
+    """
+    Registrar progresso usando atividade existente
+    
+    Use este endpoint se já tiver uma atividade_id.
+    Para novo mini-jogo, use /registrar-minijogo
+    """
+    # Se não tiver usuario_id no request, usar o usuário logado
+    progresso_dict = progresso_data.dict()
+    if 'usuario_id' not in progresso_dict or progresso_dict['usuario_id'] is None:
+        progresso_dict['usuario_id'] = current_user.id
+    
+    new_progresso = Progresso(**progresso_dict)
     db.add(new_progresso)
     db.commit()
     db.refresh(new_progresso)

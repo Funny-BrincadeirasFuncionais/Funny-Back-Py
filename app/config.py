@@ -1,17 +1,11 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
-    # Database
-    db_name: str
-    db_user: str
-    db_password: str
-    db_host: str = "localhost"
-    db_port: int = 5432
-    
-    # JWT
-    jwt_secret_key: str
+    # JWT - usar valores padrão se não configurado
+    jwt_secret_key: str = "default-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 120
     

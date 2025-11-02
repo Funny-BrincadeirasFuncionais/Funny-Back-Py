@@ -208,3 +208,7 @@ __marimo__/
 
 # Legacy backend
 LEGACY-JS-BACKEND/
+
+# SQLite database
+funny.db
+*.db

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, responsaveis, diagnosticos, criancas, atividades, progresso
+from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso
 
 # Criar tabelas no banco de dados
 Base.metadata.create_all(bind=engine)
@@ -32,6 +32,7 @@ app.include_router(diagnosticos.router)
 app.include_router(criancas.router)
 app.include_router(atividades.router)
 app.include_router(progresso.router)
+app.include_router(turmas.router)
 
 
 @app.get("/")

@@ -6,6 +6,7 @@ from app.models.responsavel import Responsavel
 from app.schemas.responsavel import ResponsavelCreate, ResponsavelResponse, ResponsavelUpdate
 from app.auth.dependencies import get_current_user
 from app.models.usuario import Usuario
+from typing import List as _List
 
 router = APIRouter(prefix="/responsaveis", tags=["Responsáveis"])
 
@@ -17,7 +18,18 @@ def list_responsaveis(
 ):
     """Listar todos os responsáveis"""
     responsaveis = db.query(Responsavel).all()
-    return responsaveis
+    # converter para lista de dicts incluindo apenas os campos esperados pelo schema
+    result = []
+    for r in responsaveis:
+        turma_ids = [t.id for t in getattr(r, "turmas", [])]
+        result.append({
+            "id": r.id,
+            "nome": r.nome,
+            "email": r.email,
+            "telefone": r.telefone,
+            "turmas": turma_ids,
+        })
+    return result
 
 
 @router.get("/{responsavel_id}", response_model=ResponsavelResponse)
@@ -33,7 +45,14 @@ def get_responsavel(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Responsável não encontrado"
         )
-    return responsavel
+    turma_ids = [t.id for t in getattr(responsavel, "turmas", [])]
+    return {
+        "id": responsavel.id,
+        "nome": responsavel.nome,
+        "email": responsavel.email,
+        "telefone": responsavel.telefone,
+        "turmas": turma_ids,
+    }
 
 
 @router.post("/", response_model=ResponsavelResponse, status_code=status.HTTP_201_CREATED)
@@ -47,7 +66,13 @@ def create_responsavel(
     db.add(new_responsavel)
     db.commit()
     db.refresh(new_responsavel)
-    return new_responsavel
+    return {
+        "id": new_responsavel.id,
+        "nome": new_responsavel.nome,
+        "email": new_responsavel.email,
+        "telefone": new_responsavel.telefone,
+        "turmas": [],
+    }
 
 
 @router.put("/{responsavel_id}", response_model=ResponsavelResponse)
@@ -71,7 +96,14 @@ def update_responsavel(
     
     db.commit()
     db.refresh(responsavel)
-    return responsavel
+    turma_ids = [t.id for t in getattr(responsavel, "turmas", [])]
+    return {
+        "id": responsavel.id,
+        "nome": responsavel.nome,
+        "email": responsavel.email,
+        "telefone": responsavel.telefone,
+        "turmas": turma_ids,
+    }
 
 
 @router.delete("/{responsavel_id}", status_code=status.HTTP_204_NO_CONTENT)

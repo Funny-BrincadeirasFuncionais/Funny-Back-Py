@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from .responsavel import ResponsavelResponse
+from .turma import TurmaResponse
 from .diagnostico import DiagnosticoResponse
 
 
@@ -18,13 +18,13 @@ class CriancaCreate(CriancaBase):
 class CriancaUpdate(BaseModel):
     nome: Optional[str] = None
     idade: Optional[int] = None
-    responsavel_id: Optional[int] = None
+    turma_id: Optional[int] = None
     diagnostico_id: Optional[int] = None
 
 
 class CriancaResponse(CriancaBase):
     id: int
-    responsavel: Optional[ResponsavelResponse] = None
+    turma: Optional[TurmaResponse] = None
     diagnostico: Optional[DiagnosticoResponse] = None
     
     class Config:

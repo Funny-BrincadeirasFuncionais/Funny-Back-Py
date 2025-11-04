@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso
+from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso, relatorios_ia
 import sys
 
 # NÃO criar tabelas aqui - Alembic vai gerenciar as migrations
@@ -37,6 +37,7 @@ app.include_router(diagnosticos.router)
 app.include_router(criancas.router)
 app.include_router(atividades.router)
 app.include_router(progresso.router)
+app.include_router(relatorios_ia.router)
 app.include_router(turmas.router)
 
 

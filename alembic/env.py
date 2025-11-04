@@ -37,7 +37,17 @@ target_metadata = Base.metadata
 
 def get_url():
     """Obter URL do banco de dados das variáveis de ambiente"""
-    return f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+    # Render fornece DATABASE_URL completa, usar ela diretamente
+    database_url = os.getenv('DATABASE_URL')
+    
+    if database_url:
+        # Render usa postgres://, mas SQLAlchemy 1.4+ precisa de postgresql://
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        return database_url
+    
+    # Fallback para desenvolvimento local com variáveis individuais
+    return f"postgresql://{os.getenv('db_user', 'postgres')}:{os.getenv('db_password', '')}@{os.getenv('db_host', 'localhost')}:{os.getenv('db_port', '5432')}/{os.getenv('db_name', 'funny_bd_yyp9')}"
 
 
 def run_migrations_offline() -> None:

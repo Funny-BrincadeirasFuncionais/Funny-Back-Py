@@ -4,8 +4,8 @@ from app.config import settings
 from app.database import engine, Base
 from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso
 
-# Criar tabelas no banco de dados
-Base.metadata.create_all(bind=engine)
+# NÃO criar tabelas aqui - Alembic vai gerenciar as migrations
+# Base.metadata.create_all(bind=engine)  # ❌ REMOVIDO
 
 # Criar aplicação FastAPI
 app = FastAPI(

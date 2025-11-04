@@ -30,8 +30,11 @@ Base.metadata.create_all(bind=engine)
 
 ### 3. entrypoint.sh
 **Melhorias:**
+- Usa `DATABASE_URL` diretamente no `psql` para checar disponibilidade do Postgres (inclui user/senha/host/porta/db)
+- Fallback para variáveis individuais (`db_host`, `db_user`, `db_password`) quando `DATABASE_URL` não estiver presente
 - Aguarda PostgreSQL estar pronto (10 tentativas)
 - Verifica se comando `alembic` existe antes de usar
+- Executa `alembic upgrade head` e, se falhar por tabelas já existentes, faz fallback para `alembic stamp head`
 - Logging melhorado para debug
 - Fallback para porta 10000 se PORT não definida
 

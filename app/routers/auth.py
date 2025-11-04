@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioResponse, UsuarioLogin, Token
@@ -36,7 +37,15 @@ def register(user_data: UsuarioCreate, db: Session = Depends(get_db)):
         db.refresh(new_user)
         
         return new_user
-        
+
+    except IntegrityError:
+        # Violação de unicidade (email duplicado) ou outra integridade relacional
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email já cadastrado"
+        )
+
     except Exception as e:
         db.rollback()
         raise HTTPException(

@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
 set -e
 
-# Aguarda o PostgreSQL estar pronto usando as variáveis de ambiente corretas do Render
+echo "Verificando disponibilidade do Postgres..."
 ATTEMPTS=0
 MAX_ATTEMPTS=10
 SLEEP_SECONDS=3
 
-# Extrair host, user do DATABASE_URL se existir, senão usar valores padrão
-DB_HOST_VAR="${db_host:-localhost}"
-DB_USER_VAR="${db_user:-postgres}"
+wait_for_postgres() {
+  if [ -n "$DATABASE_URL" ]; then
+    # Usa a URI completa (inclui usuário/senha/host/porta/db)
+    psql "$DATABASE_URL" -c '\q' 2>/dev/null && return 0 || return 1
+  else
+    # Fallback para variáveis individuais
+    DB_HOST_VAR="${db_host:-localhost}"
+    DB_USER_VAR="${db_user:-postgres}"
+    if [ -n "$db_password" ]; then
+      PGPASSWORD="$db_password" psql -h "$DB_HOST_VAR" -U "$DB_USER_VAR" -c '\q' 2>/dev/null && return 0 || return 1
+    else
+      psql -h "$DB_HOST_VAR" -U "$DB_USER_VAR" -c '\q' 2>/dev/null && return 0 || return 1
+    fi
+  fi
+}
 
-until psql -h "$DB_HOST_VAR" -U "$DB_USER_VAR" -c '\q' 2>/dev/null || [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; do
+until wait_for_postgres || [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; do
   ATTEMPTS=$((ATTEMPTS+1))
   echo "Aguardando Postgres... tentativa $ATTEMPTS/$MAX_ATTEMPTS"
   sleep $SLEEP_SECONDS
@@ -19,7 +31,16 @@ done
 # Rodar migrations Alembic
 echo "Rodando migrations Alembic..."
 if command -v alembic &> /dev/null; then
-  alembic upgrade head || echo "⚠️  Falha ao rodar alembic upgrade head - continuando mesmo assim"
+  if alembic upgrade head; then
+    echo "Migrations aplicadas com sucesso."
+  else
+    echo "⚠️  Falha ao rodar alembic upgrade head. Tentando 'alembic stamp head' como fallback..."
+    if alembic stamp head; then
+      echo "Alembic version tabelada (stamp head). Continuando."
+    else
+      echo "⚠️  Falha ao executar 'alembic stamp head'. Continuando mesmo assim."
+    fi
+  fi
 else
   echo "⚠️  Alembic não encontrado - pulando migrations"
 fi

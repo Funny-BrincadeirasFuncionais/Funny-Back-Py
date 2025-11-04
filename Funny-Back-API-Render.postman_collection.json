@@ -192,10 +192,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoria\": \"Matemáticas\"\n}"
+              "raw": "{\n  \"titulo\": \"Desafio de Contagem\",\n  \"descricao\": \"Conte os objetos e selecione a quantidade correta\",\n  \"categoria\": \"Matemática\",\n  \"nivel_dificuldade\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/atividades/"
-          }
+          },
+          "description": "Cria nova atividade. Front-end sempre envia titulo, descricao, categoria e nivel_dificuldade. Categorias aceitas: Matemática/Matemáticas, Português, Lógica, Cotidiano"
         },
         {
           "name": "Buscar atividade por ID",
@@ -215,10 +221,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoria\": \"Português\"\n}"
+              "raw": "{\n  \"titulo\": \"Novo Título\",\n  \"descricao\": \"Nova descrição\",\n  \"categoria\": \"Português\",\n  \"nivel_dificuldade\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/atividades/1"
-          }
+          },
+          "description": "Atualiza atividade. Todos os campos são opcionais (apenas os enviados serão atualizados)."
         },
         {
           "name": "Deletar atividade",
@@ -302,14 +314,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pontuacao\": 8,\n  \"categoria\": \"Matemáticas\",\n  \"crianca_id\": 1,\n  \"observacoes\": \"Boa concentração e execução do mini-jogo\"\n}"
+              "raw": "{\n  \"pontuacao\": 8,\n  \"categoria\": \"Matemática\",\n  \"crianca_id\": 1,\n  \"observacoes\": \"Boa concentração e execução do mini-jogo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/progresso/registrar-minijogo"
           },
-          "description": "Endpoint usado pelo front-end ao finalizar um mini-jogo. Cria automaticamente a atividade e registra o progresso. Professor é detectado automaticamente pelo token."
+          "description": "Endpoint alternativo que cria atividade automaticamente. Front-end usa /registrar com atividade_id. Categorias aceitas: Matemática/Matemáticas, Português, Lógica, Cotidiano. Professor é detectado automaticamente pelo token."
         },
         {
-          "name": "Registrar progresso (com atividade existente)",
+          "name": "Registrar progresso (FRONT-END usa este)",
           "request": {
             "method": "POST",
             "header": [
@@ -318,10 +335,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pontuacao\": 8,\n  \"observacoes\": \"Boa concentração e execução do mini-jogo\",\n  \"concluida\": true,\n  \"crianca_id\": 1,\n  \"atividade_id\": 1,\n  \"usuario_id\": 1\n}"
+              "raw": "{\n  \"crianca_id\": 1,\n  \"atividade_id\": 1,\n  \"pontuacao\": 8,\n  \"observacoes\": \"Boa concentração e execução do mini-jogo\",\n  \"concluida\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/progresso/registrar"
-          }
+          },
+          "description": "Endpoint usado pelo front-end para registrar progresso. Front-end NÃO envia usuario_id (preenchido automaticamente do token). Pontuação pode ser qualquer valor >= 0 (não apenas 0-10)."
         },
         {
           "name": "Listar progresso por criança",
@@ -353,6 +376,51 @@
       "name": "Relatórios IA",
       "item": [
         {
+          "name": "Health check IA",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/relatorios-ia/health"
+          },
+          "description": "Verifica se o serviço de IA está configurado corretamente. NÃO requer autenticação. Retorna se OPENAI_API_KEY está configurada e qual modelo está sendo usado."
+        },
+        {
+          "name": "Preview dados criança (debug)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/relatorios-ia/crianca/1/preview?periodo_dias=30",
+              "query": [
+                {
+                  "key": "periodo_dias",
+                  "value": "30",
+                  "description": "Número de dias para análise (opcional). Se não informado, analisa todo histórico."
+                }
+              ]
+            }
+          },
+          "description": "Visualiza os dados que serão enviados para a IA antes de gerar o relatório. Útil para debug e verificar se há dados suficientes. Requer autenticação."
+        },
+        {
+          "name": "Preview dados turma (debug)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/relatorios-ia/turma/preview?periodo_dias=30",
+              "query": [
+                {
+                  "key": "periodo_dias",
+                  "value": "30",
+                  "description": "Número de dias para análise (opcional). Se não informado, analisa todo histórico."
+                }
+              ]
+            }
+          },
+          "description": "Visualiza os dados da turma que serão enviados para a IA antes de gerar o relatório. Útil para debug e verificar dados coletivos. Requer autenticação."
+        },
+        {
           "name": "Gerar relatório individual de criança",
           "request": {
             "method": "POST",
@@ -362,10 +430,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crianca_id\": 1,\n  \"incluir_progresso\": true,\n  \"incluir_atividades\": true,\n  \"periodo_dias\": null\n}"
+              "raw": "{\n  \"crianca_id\": 1,\n  \"incluir_progresso\": true,\n  \"incluir_atividades\": true,\n  \"periodo_dias\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/relatorios-ia/crianca"
-          }
+          },
+          "description": "Gera relatório completo de uma criança usando IA (GPT-4o-mini). Analisa progresso, atividades e desempenho nos mini-jogos. Retorna análise detalhada com pontos fortes, áreas de melhoria e recomendações. Tempo de resposta: ~10-30 segundos."
         },
         {
           "name": "Gerar relatório de turma",
@@ -377,35 +451,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"incluir_progresso\": true,\n  \"incluir_atividades\": true,\n  \"periodo_dias\": null\n}"
+              "raw": "{\n  \"incluir_progresso\": true,\n  \"incluir_atividades\": true,\n  \"periodo_dias\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/relatorios-ia/turma"
-          }
-        },
-        {
-          "name": "Preview dados criança (debug)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/relatorios-ia/crianca/1/preview"
-          }
-        },
-        {
-          "name": "Preview dados turma (debug)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/relatorios-ia/turma/preview"
-          }
-        },
-        {
-          "name": "Health check IA",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/relatorios-ia/health"
-          }
+          },
+          "description": "Gera relatório completo da turma inteira usando IA (GPT-4o-mini). Analisa desempenho coletivo, distribuição de diagnósticos, performance média e categorias de mini-jogos. Retorna análise coletiva, observações pedagógicas e estratégias para a turma. Tempo de resposta: ~20-60 segundos."
         }
-      ]
+      ],
+      "description": "Endpoints para geração de relatórios usando Inteligência Artificial (GPT-4o-mini). Requer OPENAI_API_KEY configurada no Render."
     }
   ]
 }

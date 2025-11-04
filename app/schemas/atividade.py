@@ -1,51 +1,86 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Literal
-
-
-CATEGORIAS_MINIJOGOS = Literal["Matemáticas", "Português", "Lógica", "Cotidiano"]
+from typing import Optional
 
 
 class AtividadeBase(BaseModel):
-    categoria: CATEGORIAS_MINIJOGOS = Field(..., description="Categoria do mini-jogo: Matemáticas, Português, Lógica ou Cotidiano")
-    titulo: Optional[str] = Field(None, description="Título do mini-jogo (opcional - pode ser gerado no front)")
-    descricao: Optional[str] = Field(None, description="Descrição do mini-jogo (opcional - pode ser gerado no front)")
+    categoria: str = Field(..., description="Categoria do mini-jogo: Matemática(s), Português, Lógica ou Cotidiano")
+    titulo: str = Field(..., description="Título do mini-jogo")
+    descricao: str = Field(..., description="Descrição do mini-jogo")
+    nivel_dificuldade: int = Field(default=1, description="Nível de dificuldade (padrão: 1)")
     
     @field_validator('categoria')
     @classmethod
     def validate_categoria(cls, v):
+        # Normalizar categoria (aceitar tanto "Matemática" quanto "Matemáticas")
+        v_normalizado = v.strip()
+        # Mapear variações para formato padrão
+        if v_normalizado.lower() in ["matemática", "matemáticas"]:
+            return "Matemáticas"
+        if v_normalizado.lower() == "português":
+            return "Português"
+        if v_normalizado.lower() == "lógica":
+            return "Lógica"
+        if v_normalizado.lower() == "cotidiano":
+            return "Cotidiano"
+        # Se já estiver no formato correto, retornar como está
         categorias_validas = ["Matemáticas", "Português", "Lógica", "Cotidiano"]
-        if v not in categorias_validas:
-            raise ValueError(f"Categoria deve ser uma das seguintes: {', '.join(categorias_validas)}")
-        return v
+        if v_normalizado in categorias_validas:
+            return v_normalizado
+        raise ValueError(f"Categoria deve ser uma das seguintes: Matemática(s), Português, Lógica ou Cotidiano")
 
 
 class AtividadeCreate(BaseModel):
-    """Schema para criar atividade - só precisa da categoria (o front roda tudo)"""
-    categoria: CATEGORIAS_MINIJOGOS = Field(..., description="Categoria do mini-jogo: Matemáticas, Português, Lógica ou Cotidiano")
-    titulo: Optional[str] = Field(None, description="Título do mini-jogo (opcional)")
-    descricao: Optional[str] = Field(None, description="Descrição do mini-jogo (opcional)")
+    """Schema para criar atividade - front-end envia titulo, descricao, categoria e nivel_dificuldade"""
+    titulo: str = Field(..., description="Título do mini-jogo")
+    descricao: str = Field(..., description="Descrição do mini-jogo")
+    categoria: str = Field(..., description="Categoria do mini-jogo: Matemática(s), Português, Lógica ou Cotidiano")
+    nivel_dificuldade: int = Field(default=1, description="Nível de dificuldade (padrão: 1)")
     
     @field_validator('categoria')
     @classmethod
     def validate_categoria(cls, v):
+        # Normalizar categoria (aceitar tanto "Matemática" quanto "Matemáticas")
+        v_normalizado = v.strip()
+        # Mapear variações para formato padrão
+        if v_normalizado.lower() in ["matemática", "matemáticas"]:
+            return "Matemáticas"
+        if v_normalizado.lower() == "português":
+            return "Português"
+        if v_normalizado.lower() == "lógica":
+            return "Lógica"
+        if v_normalizado.lower() == "cotidiano":
+            return "Cotidiano"
+        # Se já estiver no formato correto, retornar como está
         categorias_validas = ["Matemáticas", "Português", "Lógica", "Cotidiano"]
-        if v not in categorias_validas:
-            raise ValueError(f"Categoria deve ser uma das seguintes: {', '.join(categorias_validas)}")
-        return v
+        if v_normalizado in categorias_validas:
+            return v_normalizado
+        raise ValueError(f"Categoria deve ser uma das seguintes: Matemática(s), Português, Lógica ou Cotidiano")
 
 
 class AtividadeUpdate(BaseModel):
-    categoria: Optional[CATEGORIAS_MINIJOGOS] = Field(None, description="Categoria do mini-jogo")
+    categoria: Optional[str] = Field(None, description="Categoria do mini-jogo")
     titulo: Optional[str] = Field(None, description="Título do mini-jogo")
     descricao: Optional[str] = Field(None, description="Descrição do mini-jogo")
+    nivel_dificuldade: Optional[int] = Field(None, description="Nível de dificuldade")
     
     @field_validator('categoria')
     @classmethod
     def validate_categoria(cls, v):
         if v is not None:
+            # Normalizar categoria (aceitar tanto "Matemática" quanto "Matemáticas")
+            v_normalizado = v.strip()
+            if v_normalizado.lower() in ["matemática", "matemáticas"]:
+                return "Matemáticas"
+            if v_normalizado.lower() == "português":
+                return "Português"
+            if v_normalizado.lower() == "lógica":
+                return "Lógica"
+            if v_normalizado.lower() == "cotidiano":
+                return "Cotidiano"
             categorias_validas = ["Matemáticas", "Português", "Lógica", "Cotidiano"]
-            if v not in categorias_validas:
-                raise ValueError(f"Categoria deve ser uma das seguintes: {', '.join(categorias_validas)}")
+            if v_normalizado in categorias_validas:
+                return v_normalizado
+            raise ValueError(f"Categoria deve ser uma das seguintes: Matemática(s), Português, Lógica ou Cotidiano")
         return v
 
 

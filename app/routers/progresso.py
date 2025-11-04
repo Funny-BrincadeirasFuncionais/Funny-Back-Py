@@ -89,13 +89,12 @@ def registrar_progresso(
     """
     Registrar progresso usando atividade existente
     
-    Use este endpoint se já tiver uma atividade_id.
-    Para novo mini-jogo, use /registrar-minijogo
+    Front-end envia: crianca_id, atividade_id, pontuacao, observacoes, concluida
+    usuario_id é preenchido automaticamente do token JWT
     """
-    # Se não tiver usuario_id no request, usar o usuário logado
-    progresso_dict = progresso_data.dict()
-    if 'usuario_id' not in progresso_dict or progresso_dict['usuario_id'] is None:
-        progresso_dict['usuario_id'] = current_user.id
+    # Front-end NÃO envia usuario_id, então preenchemos automaticamente do token
+    progresso_dict = progresso_data.dict(exclude_unset=True)
+    progresso_dict['usuario_id'] = current_user.id  # Sempre usar o usuário do token
     
     new_progresso = Progresso(**progresso_dict)
     db.add(new_progresso)

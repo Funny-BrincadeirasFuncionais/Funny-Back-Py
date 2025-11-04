@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.crianca import Crianca
+from app.models.turma import Turma
+from app.models.diagnostico import Diagnostico
 from app.schemas.crianca import CriancaCreate, CriancaResponse, CriancaUpdate
 from app.auth.dependencies import get_current_user
 from app.models.usuario import Usuario
@@ -43,7 +45,21 @@ def create_crianca(
     current_user: Usuario = Depends(get_current_user)
 ):
     """Criar nova criança"""
-    new_crianca = Crianca(**crianca_data.dict())
+    data = crianca_data.dict()
+    # Validar chaves estrangeiras quando fornecidas
+    turma_id = data.get("turma_id")
+    if turma_id is not None:
+        turma = db.query(Turma).filter(Turma.id == turma_id).first()
+        if not turma:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
+
+    diagnostico_id = data.get("diagnostico_id")
+    if diagnostico_id is not None:
+        diag = db.query(Diagnostico).filter(Diagnostico.id == diagnostico_id).first()
+        if not diag:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagnóstico não encontrado")
+
+    new_crianca = Crianca(**data)
     db.add(new_crianca)
     db.commit()
     db.refresh(new_crianca)
@@ -66,6 +82,16 @@ def update_crianca(
         )
     
     update_data = crianca_data.dict(exclude_unset=True)
+
+    # Validar chaves estrangeiras ao atualizar
+    if "turma_id" in update_data and update_data["turma_id"] is not None:
+        turma = db.query(Turma).filter(Turma.id == update_data["turma_id"]).first()
+        if not turma:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
+    if "diagnostico_id" in update_data and update_data["diagnostico_id"] is not None:
+        diag = db.query(Diagnostico).filter(Diagnostico.id == update_data["diagnostico_id"]).first()
+        if not diag:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagnóstico não encontrado")
     for field, value in update_data.items():
         setattr(crianca, field, value)
     

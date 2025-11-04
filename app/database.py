@@ -2,14 +2,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+import sys
 
 # Usar variável de ambiente DATABASE_URL (PostgreSQL no Render)
 # Fallback para SQLite apenas para desenvolvimento local
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./funny.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Render usa postgres://, mas SQLAlchemy 1.4+ precisa de postgresql://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if not DATABASE_URL:
+    # Fallback apenas para desenvolvimento local
+    print("⚠️  DATABASE_URL não configurada! Usando SQLite local.", file=sys.stderr)
+    DATABASE_URL = "sqlite:///./funny.db"
+else:
+    # Render usa postgres://, mas SQLAlchemy 1.4+ precisa de postgresql://
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    print(f"✅ Conectando ao PostgreSQL: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else 'database'}", file=sys.stderr)
 
 # Criar engine com configurações apropriadas para cada banco
 if DATABASE_URL.startswith("postgresql://"):

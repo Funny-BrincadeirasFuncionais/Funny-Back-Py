@@ -3,6 +3,7 @@ from .responsavel import ResponsavelCreate, ResponsavelResponse, ResponsavelUpda
 from .diagnostico import DiagnosticoCreate, DiagnosticoResponse, DiagnosticoUpdate
 from .crianca import CriancaCreate, CriancaResponse, CriancaUpdate
 from .atividade import AtividadeCreate, AtividadeResponse, AtividadeUpdate
+from .turma import TurmaCreate, TurmaResponse, TurmaUpdate
 from .progresso import ProgressoCreate, ProgressoResponse, ProgressoUpdate, ProgressoResumo
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     "DiagnosticoCreate", "DiagnosticoResponse", "DiagnosticoUpdate",
     "CriancaCreate", "CriancaResponse", "CriancaUpdate",
     "AtividadeCreate", "AtividadeResponse", "AtividadeUpdate",
-    "ProgressoCreate", "ProgressoResponse", "ProgressoUpdate", "ProgressoResumo"
+    "ProgressoCreate", "ProgressoResponse", "ProgressoUpdate", "ProgressoResumo",
+    "TurmaCreate", "TurmaResponse", "TurmaUpdate"
 ]

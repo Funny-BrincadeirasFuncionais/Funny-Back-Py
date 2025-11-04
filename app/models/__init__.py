@@ -4,6 +4,7 @@ from .diagnostico import Diagnostico
 from .crianca import Crianca
 from .atividade import Atividade
 from .progresso import Progresso
+from .turma import Turma
 
 __all__ = [
     "Usuario",
@@ -11,5 +12,6 @@ __all__ = [
     "Diagnostico",
     "Crianca",
     "Atividade",
-    "Progresso"
+    "Progresso",
+    "Turma"
 ]

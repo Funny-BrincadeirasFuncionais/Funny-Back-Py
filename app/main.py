@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, responsaveis, diagnosticos, criancas, atividades, progresso, relatorios_ia
+from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso, relatorios_ia
 
-# Criar tabelas no banco de dados
-Base.metadata.create_all(bind=engine)
+# NÃO criar tabelas aqui - Alembic vai gerenciar as migrations
+# Base.metadata.create_all(bind=engine)  # ❌ REMOVIDO
 
 # Criar aplicação FastAPI
 app = FastAPI(
@@ -33,6 +33,7 @@ app.include_router(criancas.router)
 app.include_router(atividades.router)
 app.include_router(progresso.router)
 app.include_router(relatorios_ia.router)
+app.include_router(turmas.router)
 
 
 @app.get("/")

@@ -12,4 +12,4 @@ class Responsavel(Base):
     telefone = Column(String, nullable=False)
     
     # Relacionamentos
-    criancas = relationship("Crianca", back_populates="responsavel")
+    turmas = relationship("Turma", back_populates="responsavel")

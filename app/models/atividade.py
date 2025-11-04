@@ -12,6 +12,7 @@ class Atividade(Base):
     titulo = Column(String, nullable=True)  # Opcional - pode ser gerado no front
     descricao = Column(Text, nullable=True)  # Opcional - pode ser gerado no front
     
+    nivel_dificuldade = Column(Integer, nullable=False, default=1)
     # Relacionamentos
     progressos = relationship("Progresso", back_populates="atividade")
     

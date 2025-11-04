@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
 from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso, relatorios_ia
+import sys
 
 # NÃO criar tabelas aqui - Alembic vai gerenciar as migrations
 # Base.metadata.create_all(bind=engine)  # ❌ REMOVIDO
@@ -15,6 +16,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Log de inicialização para debug
+print(f"🚀 Iniciando {settings.app_name} v{settings.app_version}", file=sys.stderr)
+print(f"🔧 Engine configurado: {engine.url}", file=sys.stderr)
 
 # Configurar CORS
 app.add_middleware(

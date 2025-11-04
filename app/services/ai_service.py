@@ -22,7 +22,7 @@ class AIService:
     def __init__(self):
         self.api_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
         self.base_url = "https://api.openai.com/v1/chat/completions"
-        self.model = "gpt-5-mini"  # Usando o modelo mais recente disponível
+        self.model = "gpt-4o-mini"  # Modelo OpenAI disponível (gpt-5-mini não existe ainda)
         
     async def _make_openai_request(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Faz requisição para a API do OpenAI"""

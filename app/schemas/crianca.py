@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
-from .turma import TurmaResponse
-from .diagnostico import DiagnosticoResponse
+from .turma import TurmaResponse  # noqa: F401 (mantido se usado em outros lugares)
+from .diagnostico import DiagnosticoResponse  # noqa: F401
 
 
 class CriancaBase(BaseModel):
@@ -32,8 +32,8 @@ class CriancaResponse(BaseModel):
     idade: int
     turma_id: Optional[int] = None
     diagnostico_id: Optional[int] = None
-    turma: Optional[TurmaResponse] = None
-    diagnostico: Optional[DiagnosticoResponse] = None
+    # Simplificado para evitar erros de serialização por relacionamentos profundos
+    # (se precisar dos objetos aninhados, montar manualmente no router como em turmas)
 
     class Config:
         from_attributes = True

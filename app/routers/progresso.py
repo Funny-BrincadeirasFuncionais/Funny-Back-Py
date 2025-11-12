@@ -9,6 +9,8 @@ from app.schemas.atividade import AtividadeCreate
 from app.auth.dependencies import get_current_user
 from app.models.usuario import Usuario
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/progresso", tags=["Progresso"])
 
@@ -61,23 +63,37 @@ def registrar_minijogo(
         titulo=None,  # Gerado no front
         descricao=None  # Gerado no front
     )
-    db.add(nova_atividade)
-    db.flush()  # Para obter o ID da atividade
-    
-    # Criar progresso
-    novo_progresso = Progresso(
-        pontuacao=request.pontuacao,
-        observacoes=request.observacoes,
-        concluida=True,  # Se chegou aqui, foi concluída
-        crianca_id=request.crianca_id,
-        atividade_id=nova_atividade.id,
-        usuario_id=current_user.id  # Professor logado
-    )
-    db.add(novo_progresso)
-    db.commit()
-    db.refresh(novo_progresso)
-    
-    return novo_progresso
+    try:
+        db.add(nova_atividade)
+        db.flush()  # Para obter o ID da atividade
+
+        # Criar progresso
+        novo_progresso = Progresso(
+            pontuacao=request.pontuacao,
+            observacoes=request.observacoes,
+            concluida=True,  # Se chegou aqui, foi concluída
+            crianca_id=request.crianca_id,
+            atividade_id=nova_atividade.id,
+            usuario_id=current_user.id  # Professor logado
+        )
+        db.add(novo_progresso)
+        db.commit()
+        db.refresh(novo_progresso)
+        return novo_progresso
+    except IntegrityError as e:
+        db.rollback()
+        # FK violation or not-null constraint
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Database integrity error: {e.orig if hasattr(e, 'orig') else str(e)}")
+    except ProgrammingError as e:
+        db.rollback()
+        # Likely missing table / schema mismatch
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database programming error: {e.orig if hasattr(e, 'orig') else str(e)}")
+    except OperationalError as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database operational error: {str(e)}")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
 
 
 @router.post("/registrar", response_model=ProgressoResponse, status_code=status.HTTP_201_CREATED)
@@ -97,10 +113,23 @@ def registrar_progresso(
     progresso_dict['usuario_id'] = current_user.id  # Sempre usar o usuário do token
     
     new_progresso = Progresso(**progresso_dict)
-    db.add(new_progresso)
-    db.commit()
-    db.refresh(new_progresso)
-    return new_progresso
+    try:
+        db.add(new_progresso)
+        db.commit()
+        db.refresh(new_progresso)
+        return new_progresso
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Database integrity error: {e.orig if hasattr(e, 'orig') else str(e)}")
+    except ProgrammingError as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database programming error: {e.orig if hasattr(e, 'orig') else str(e)}")
+    except OperationalError as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database operational error: {str(e)}")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
 
 
 @router.get("/crianca/{crianca_id}", response_model=List[ProgressoResponse])

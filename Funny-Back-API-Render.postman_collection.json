@@ -344,7 +344,7 @@
             },
             "url": "{{baseUrl}}/progresso/registrar"
           },
-          "description": "Endpoint usado pelo front-end para registrar progresso. Front-end NÃO envia usuario_id (preenchido automaticamente do token). Pontuação pode ser qualquer valor >= 0 (não apenas 0-10)."
+          "description": "Endpoint usado pelo front-end para registrar progresso. Front-end NÃO envia responsavel_id (será determinado automaticamente a partir da criança/turma). Pontuação pode ser qualquer valor >= 0 (não apenas 0-10)."
         },
         {
           "name": "Listar progresso por criança",

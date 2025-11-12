@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from .crianca import CriancaResponse
 from .atividade import AtividadeResponse
-from .usuario import UsuarioResponse
+from .responsavel import ResponsavelResponse
 
 
 class ProgressoBase(BaseModel):
@@ -11,7 +11,7 @@ class ProgressoBase(BaseModel):
     concluida: bool = True  # Se chegou no back, foi concluída
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
     atividade_id: int = Field(..., description="ID da atividade (mini-jogo)")
-    usuario_id: Optional[int] = Field(None, description="ID do professor que aplicou a atividade (opcional, preenchido automaticamente)")
+    responsavel_id: Optional[int] = Field(None, description="ID do responsavel associado ao progresso (preenchido automaticamente a partir da criança/turma)")
     
     @field_validator('pontuacao')
     @classmethod
@@ -28,7 +28,7 @@ class ProgressoCreate(BaseModel):
     concluida: bool = Field(default=True, description="Se a atividade foi concluída")
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
     atividade_id: int = Field(..., description="ID da atividade (mini-jogo)")
-    usuario_id: Optional[int] = Field(None, description="ID do professor (opcional, preenchido automaticamente do token)")
+    responsavel_id: Optional[int] = Field(None, description="ID do responsavel (opcional, preenchido automaticamente a partir da criança/turma)")
     
     @field_validator('pontuacao')
     @classmethod
@@ -55,7 +55,7 @@ class ProgressoResponse(ProgressoBase):
     id: int
     crianca: Optional[CriancaResponse] = None
     atividade: Optional[AtividadeResponse] = None
-    usuario: Optional[UsuarioResponse] = None
+    responsavel: Optional[ResponsavelResponse] = None
     
     class Config:
         from_attributes = True

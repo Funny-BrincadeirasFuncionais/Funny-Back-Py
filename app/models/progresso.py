@@ -15,9 +15,12 @@ class Progresso(Base):
     concluida = Column(Boolean, default=True)  # Front-end sempre envia como true
     crianca_id = Column(Integer, ForeignKey("criancas.id"), nullable=False)  # Aluno
     atividade_id = Column(Integer, ForeignKey("atividades.id"), nullable=False)  # Atividade (mini-jogo)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)  # Professor que aplicou (preenchido automaticamente do token)
-    
+    # Note: previously this referenced a `usuario_id`. The data model should
+    # relate progresso to a responsavel (guardian/parent) instead. We keep the
+    # column nullable initially to avoid breaking existing data during migration.
+    responsavel_id = Column(Integer, ForeignKey("responsaveis.id"), nullable=True)
+
     # Relacionamentos
     crianca = relationship("Crianca", back_populates="progressos")
     atividade = relationship("Atividade", back_populates="progressos")
-    usuario = relationship("Usuario")
+    responsavel = relationship("Responsavel")

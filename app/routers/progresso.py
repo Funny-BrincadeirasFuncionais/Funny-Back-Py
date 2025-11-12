@@ -5,6 +5,8 @@ import logging
 from app.database import get_db
 from app.models.progresso import Progresso
 from app.models.atividade import Atividade
+from app.models.crianca import Crianca
+from app.models.turma import Turma
 from app.schemas.progresso import ProgressoCreate, ProgressoResponse, ProgressoUpdate, ProgressoResumo
 from app.schemas.atividade import AtividadeCreate
 from app.auth.dependencies import get_current_user
@@ -47,11 +49,11 @@ def registrar_minijogo(
     - **pontuacao**: Nota obtida (0 a 10)
     - **categoria**: Matemáticas, Português, Lógica ou Cotidiano
     - **crianca_id**: ID do aluno que realizou
-    - **usuario_id**: Automático (professor logado)
+    - **responsavel_id**: Automático (determinado a partir da turma/criança)
     """
     # Log payload para debug (temporário)
     try:
-        logger.info(f"registrar_minijogo payload: {request.dict()} usuario_id={current_user.id}")
+        logger.info(f"registrar_minijogo payload: {request.dict()}")
     except Exception:
         logger.info("registrar_minijogo: unable to log payload")
 
@@ -82,6 +84,19 @@ def registrar_minijogo(
         db.add(nova_atividade)
         db.flush()  # Para obter o ID da atividade
 
+        # Determine responsavel_id from the child's turma (if available)
+        crianca = db.query(Crianca).filter(Crianca.id == request.crianca_id).first()
+        if not crianca:
+            db.rollback()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Criança não encontrada")
+
+        turma = None
+        responsavel_id = None
+        if crianca.turma_id is not None:
+            turma = db.query(Turma).filter(Turma.id == crianca.turma_id).first()
+            if turma:
+                responsavel_id = turma.responsavel_id
+
         # Criar progresso
         novo_progresso = Progresso(
             pontuacao=request.pontuacao,
@@ -89,7 +104,7 @@ def registrar_minijogo(
             concluida=True,  # Se chegou aqui, foi concluída
             crianca_id=request.crianca_id,
             atividade_id=nova_atividade.id,
-            usuario_id=current_user.id  # Professor logado
+            responsavel_id=responsavel_id
         )
         db.add(novo_progresso)
         db.commit()
@@ -128,17 +143,26 @@ def registrar_progresso(
     Registrar progresso usando atividade existente
     
     Front-end envia: crianca_id, atividade_id, pontuacao, observacoes, concluida
-    usuario_id é preenchido automaticamente do token JWT
+    responsavel_id é determinado automaticamente a partir da criança/turma
     """
     # Log payload para debug (temporário)
     try:
-        logger.info(f"registrar_progresso payload: {progresso_data.dict(exclude_unset=True)} usuario_id={current_user.id}")
+        logger.info(f"registrar_progresso payload: {progresso_data.dict(exclude_unset=True)}")
     except Exception:
         logger.info("registrar_progresso: unable to log payload")
 
-    # Front-end NÃO envia usuario_id, então preenchemos automaticamente do token
+    # Front-end NÃO envia responsavel_id; determinamos a responsavel_id a partir da criança/turma
     progresso_dict = progresso_data.dict(exclude_unset=True)
-    progresso_dict['usuario_id'] = current_user.id  # Sempre usar o usuário do token
+    crianca_id = progresso_dict.get('crianca_id')
+    responsavel_id = None
+    if crianca_id is not None:
+        crianca = db.query(Crianca).filter(Crianca.id == crianca_id).first()
+        if crianca:
+            if crianca.turma_id is not None:
+                turma = db.query(Turma).filter(Turma.id == crianca.turma_id).first()
+                if turma:
+                    responsavel_id = turma.responsavel_id
+    progresso_dict['responsavel_id'] = responsavel_id
     
     # Try to find an existing progresso for this atividade + crianca (created by registrar-minijogo)
     try:
@@ -152,7 +176,8 @@ def registrar_progresso(
             existing.pontuacao = progresso_dict.get('pontuacao', existing.pontuacao)
             existing.observacoes = progresso_dict.get('observacoes', existing.observacoes)
             existing.concluida = progresso_dict.get('concluida', existing.concluida)
-            existing.usuario_id = current_user.id
+            # Keep/update responsavel association from child's turma
+            existing.responsavel_id = progresso_dict.get('responsavel_id', existing.responsavel_id)
             db.add(existing)
             db.commit()
             db.refresh(existing)

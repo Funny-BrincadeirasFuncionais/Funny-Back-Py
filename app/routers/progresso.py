@@ -96,7 +96,10 @@ def registrar_minijogo(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
 
 
-@router.post("/registrar", response_model=ProgressoResponse, status_code=status.HTTP_201_CREATED)
+from fastapi.encoders import jsonable_encoder
+
+
+@router.post("/registrar", response_model=ProgressoResponse)
 def registrar_progresso(
     progresso_data: ProgressoCreate,
     db: Session = Depends(get_db),
@@ -112,12 +115,31 @@ def registrar_progresso(
     progresso_dict = progresso_data.dict(exclude_unset=True)
     progresso_dict['usuario_id'] = current_user.id  # Sempre usar o usuário do token
     
-    new_progresso = Progresso(**progresso_dict)
+    # Try to find an existing progresso for this atividade + crianca (created by registrar-minijogo)
     try:
+        existing = db.query(Progresso).filter(
+            Progresso.atividade_id == progresso_dict.get('atividade_id'),
+            Progresso.crianca_id == progresso_dict.get('crianca_id')
+        ).order_by(Progresso.id.desc()).first()
+
+        if existing:
+            # Update the existing progresso instead of creating a duplicate
+            existing.pontuacao = progresso_dict.get('pontuacao', existing.pontuacao)
+            existing.observacoes = progresso_dict.get('observacoes', existing.observacoes)
+            existing.concluida = progresso_dict.get('concluida', existing.concluida)
+            existing.usuario_id = current_user.id
+            db.add(existing)
+            db.commit()
+            db.refresh(existing)
+            return existing
+
+        # No existing progresso found -> create a new one
+        new_progresso = Progresso(**progresso_dict)
         db.add(new_progresso)
         db.commit()
         db.refresh(new_progresso)
-        return new_progresso
+        # return created with 201
+        return JSONResponse(status_code=status.HTTP_201_CREATED, content=jsonable_encoder(new_progresso))
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Database integrity error: {e.orig if hasattr(e, 'orig') else str(e)}")

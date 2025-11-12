@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioResponse, UsuarioLogin, Token
 from app.auth import hash_password, verify_password, create_access_token
+from app.models.responsavel import Responsavel
 from datetime import timedelta
 from app.config import settings
 
@@ -79,5 +80,8 @@ def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db)):
         data={"id": user.id, "email": user.email},
         expires_delta=access_token_expires
     )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Tentar achar um responsável com o mesmo e-mail do usuário
+    responsavel = db.query(Responsavel).filter(Responsavel.email == user.email).first()
+    responsavel_id = responsavel.id if responsavel else None
+
+    return {"access_token": access_token, "token_type": "bearer", "responsavel_id": responsavel_id}

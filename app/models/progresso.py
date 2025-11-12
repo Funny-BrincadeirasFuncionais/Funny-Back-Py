@@ -4,7 +4,10 @@ from app.database import Base
 
 
 class Progresso(Base):
-    __tablename__ = "progressos"
+    # Use the singular table name 'progresso' to match the Alembic initial migration
+    # (the migrations create 'progresso' not 'progressos'). Keeping this aligned
+    # avoids ProgrammingError: relation "progressos" does not exist.
+    __tablename__ = "progresso"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     pontuacao = Column(Integer, nullable=False)  # Pontuação (pode ser qualquer valor >= 0)

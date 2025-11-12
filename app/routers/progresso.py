@@ -27,6 +27,8 @@ class RegistrarMiniJogoRequest(BaseModel):
     pontuacao: int = Field(..., ge=0, le=10, description="Pontuação obtida no mini-jogo (0 a 10)")
     categoria: str = Field(..., description="Categoria do mini-jogo: Matemáticas, Português, Lógica ou Cotidiano")
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
+    titulo: str = Field(..., description="Título da atividade gerada (deve ser enviado pelo front)")
+    descricao: str = Field(..., description="Descrição da atividade gerada (deve ser enviada pelo front)")
     observacoes: Optional[str] = Field(None, description="Observações opcionais sobre o desempenho")
 
 
@@ -69,10 +71,12 @@ def registrar_minijogo(
         )
     
     # Criar atividade (cada atividade tem ID único, mesmo que mesma categoria)
+    # `titulo` e `descricao` devem ser enviados pelo front-end (requerido no schema)
     nova_atividade = Atividade(
         categoria=request.categoria,
-        titulo=None,  # Gerado no front
-        descricao=None  # Gerado no front
+        titulo=request.titulo,
+        descricao=request.descricao,
+        nivel_dificuldade=1,
     )
     try:
         db.add(nova_atividade)

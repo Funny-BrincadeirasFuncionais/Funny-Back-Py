@@ -1,6 +1,6 @@
 """Add responsavel_id to progresso table
 
-Revision ID: 0002_add_responsavel_to_progresso
+Revision ID: 0002_resp_progresso
 Revises: 0001
 Create Date: 2025-11-12 21:20:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '0002_add_responsavel_to_progresso'
+revision = '0002_resp_progresso'
 down_revision = '0001'
 branch_labels = None
 depends_on = None

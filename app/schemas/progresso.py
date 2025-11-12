@@ -55,8 +55,9 @@ class ProgressoResponse(ProgressoBase):
     id: int
     crianca: Optional[CriancaResponse] = None
     atividade: Optional[AtividadeResponse] = None
-    responsavel: Optional[ResponsavelResponse] = None
-    
+    # Return only the responsavel_id to avoid serializing nested ORM objects
+    responsavel_id: Optional[int] = None
+
     class Config:
         from_attributes = True
 

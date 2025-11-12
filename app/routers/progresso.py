@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import logging
 from app.database import get_db
 from app.models.progresso import Progresso
 from app.models.atividade import Atividade
@@ -13,6 +14,10 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
 from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/progresso", tags=["Progresso"])
+
+# Logger para debug temporário em produção (remover depois de investigado)
+logger = logging.getLogger("funny.progresso")
+logger.setLevel(logging.INFO)
 
 
 class RegistrarMiniJogoRequest(BaseModel):
@@ -42,6 +47,12 @@ def registrar_minijogo(
     - **crianca_id**: ID do aluno que realizou
     - **usuario_id**: Automático (professor logado)
     """
+    # Log payload para debug (temporário)
+    try:
+        logger.info(f"registrar_minijogo payload: {request.dict()} usuario_id={current_user.id}")
+    except Exception:
+        logger.info("registrar_minijogo: unable to log payload")
+
     # Validar categoria
     categorias_validas = ["Matemáticas", "Português", "Lógica", "Cotidiano"]
     if request.categoria not in categorias_validas:
@@ -83,16 +94,20 @@ def registrar_minijogo(
     except IntegrityError as e:
         db.rollback()
         # FK violation or not-null constraint
+        logger.exception("IntegrityError in registrar_minijogo")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Database integrity error: {e.orig if hasattr(e, 'orig') else str(e)}")
     except ProgrammingError as e:
         db.rollback()
         # Likely missing table / schema mismatch
+        logger.exception("ProgrammingError in registrar_minijogo")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database programming error: {e.orig if hasattr(e, 'orig') else str(e)}")
     except OperationalError as e:
         db.rollback()
+        logger.exception("OperationalError in registrar_minijogo")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database operational error: {str(e)}")
     except Exception as e:
         db.rollback()
+        logger.exception("Unexpected error in registrar_minijogo")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
 
 
@@ -111,6 +126,12 @@ def registrar_progresso(
     Front-end envia: crianca_id, atividade_id, pontuacao, observacoes, concluida
     usuario_id é preenchido automaticamente do token JWT
     """
+    # Log payload para debug (temporário)
+    try:
+        logger.info(f"registrar_progresso payload: {progresso_data.dict(exclude_unset=True)} usuario_id={current_user.id}")
+    except Exception:
+        logger.info("registrar_progresso: unable to log payload")
+
     # Front-end NÃO envia usuario_id, então preenchemos automaticamente do token
     progresso_dict = progresso_data.dict(exclude_unset=True)
     progresso_dict['usuario_id'] = current_user.id  # Sempre usar o usuário do token
@@ -142,15 +163,19 @@ def registrar_progresso(
         return JSONResponse(status_code=status.HTTP_201_CREATED, content=jsonable_encoder(new_progresso))
     except IntegrityError as e:
         db.rollback()
+        logger.exception("IntegrityError in registrar_progresso")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Database integrity error: {e.orig if hasattr(e, 'orig') else str(e)}")
     except ProgrammingError as e:
         db.rollback()
+        logger.exception("ProgrammingError in registrar_progresso")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database programming error: {e.orig if hasattr(e, 'orig') else str(e)}")
     except OperationalError as e:
         db.rollback()
+        logger.exception("OperationalError in registrar_progresso")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database operational error: {str(e)}")
     except Exception as e:
         db.rollback()
+        logger.exception("Unexpected error in registrar_progresso")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
 
 

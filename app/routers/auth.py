@@ -9,6 +9,7 @@ import httpx
 from app.models.responsavel import Responsavel
 from datetime import timedelta
 from app.config import settings
+from uuid import uuid4
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
@@ -111,4 +112,58 @@ def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db), request
     responsavel = db.query(Responsavel).filter(Responsavel.email == user.email).first()
     responsavel_id = responsavel.id if responsavel else None
 
+    return {"access_token": access_token, "token_type": "bearer", "responsavel_id": responsavel_id}
+
+
+
+@router.post("/google", response_model=Token)
+def google_login(payload: dict, db: Session = Depends(get_db)):
+    """Authenticate or register a user using a Google ID token.
+
+    Expects JSON: { "id_token": "..." }
+    Verifies the token with Google's tokeninfo endpoint, then finds or creates
+    a `Usuario` with the returned email. Returns the same token payload as
+    the regular `/login` endpoint.
+    """
+    id_token = payload.get("id_token") if isinstance(payload, dict) else None
+    if not id_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="id_token missing")
+
+    try:
+        verify_url = "https://oauth2.googleapis.com/tokeninfo"
+        resp = httpx.get(verify_url, params={"id_token": id_token}, timeout=10.0)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Google token verification error: {str(e)}")
+
+    try:
+        info = resp.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid response from Google token info endpoint")
+
+    email = info.get("email")
+    email_verified = info.get("email_verified") in ("true", True, "True")
+    name = info.get("name") or (email.split("@")[0] if email else "")
+
+    if not email or not email_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google token invalid or email not verified")
+
+    # Find or create user
+    user = db.query(Usuario).filter(Usuario.email == email).first()
+    if not user:
+        # create user with random password hash
+        random_pw = str(uuid4())
+        hashed = hash_password(random_pw)
+        user = Usuario(nome=name, email=email, senha_hash=hashed)
+        try:
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            user = db.query(Usuario).filter(Usuario.email == email).first()
+
+    # create JWT
+    access_token = create_access_token(data={"id": user.id, "email": user.email})
+    responsavel = db.query(Responsavel).filter(Responsavel.email == user.email).first()
+    responsavel_id = responsavel.id if responsavel else None
     return {"access_token": access_token, "token_type": "bearer", "responsavel_id": responsavel_id}

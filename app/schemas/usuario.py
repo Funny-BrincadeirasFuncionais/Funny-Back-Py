@@ -26,3 +26,4 @@ class UsuarioResponse(UsuarioBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    responsavel_id: Optional[int] = None

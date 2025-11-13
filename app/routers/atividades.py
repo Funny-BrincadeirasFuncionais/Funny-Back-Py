@@ -15,7 +15,7 @@ def list_atividades(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Listar todas as atividades"""
+    """Listar todos os mini-jogos disponíveis"""
     atividades = db.query(Atividade).all()
     return atividades
 
@@ -26,12 +26,12 @@ def get_atividade(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Buscar atividade por ID"""
+    """Buscar mini-jogo por ID"""
     atividade = db.query(Atividade).filter(Atividade.id == atividade_id).first()
     if not atividade:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Atividade não encontrada"
+            detail="Mini-jogo não encontrado"
         )
     return atividade
 
@@ -42,7 +42,10 @@ def create_atividade(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Criar nova atividade"""
+    """Criar novo mini-jogo
+    
+    Categorias válidas: Matemáticas, Português, Lógica ou Cotidiano
+    """
     new_atividade = Atividade(**atividade_data.dict())
     db.add(new_atividade)
     db.commit()
@@ -57,12 +60,12 @@ def update_atividade(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Atualizar atividade"""
+    """Atualizar mini-jogo"""
     atividade = db.query(Atividade).filter(Atividade.id == atividade_id).first()
     if not atividade:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Atividade não encontrada"
+            detail="Mini-jogo não encontrado"
         )
     
     update_data = atividade_data.dict(exclude_unset=True)
@@ -80,12 +83,12 @@ def delete_atividade(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Deletar atividade"""
+    """Deletar mini-jogo"""
     atividade = db.query(Atividade).filter(Atividade.id == atividade_id).first()
     if not atividade:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Atividade não encontrada"
+            detail="Mini-jogo não encontrado"
         )
     
     db.delete(atividade)

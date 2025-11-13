@@ -22,7 +22,7 @@ class AIService:
     def __init__(self):
         self.api_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
         self.base_url = "https://api.openai.com/v1/chat/completions"
-        self.model = "gpt-5-mini"  # Usando o modelo mais recente disponível
+        self.model = "gpt-4o-mini"  # Modelo OpenAI disponível (gpt-5-mini não existe ainda)
         
     async def _make_openai_request(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Faz requisição para a API do OpenAI"""
@@ -71,12 +71,11 @@ class AIService:
         for progresso in progressos:
             progressos_data.append({
                 "id": progresso.id,
-                "pontuacao": progresso.pontuacao,
+                "pontuacao": progresso.pontuacao,  # Pontuação de 0 a 10
                 "concluida": progresso.concluida,
                 "observacoes": progresso.observacoes,
                 "atividade_titulo": progresso.atividade.titulo if progresso.atividade else None,
-                "atividade_categoria": progresso.atividade.categoria if progresso.atividade else None,
-                "nivel_dificuldade": progresso.atividade.nivel_dificuldade if progresso.atividade else None
+                "atividade_categoria": progresso.atividade.categoria if progresso.atividade else None  # Matemáticas, Português, Lógica ou Cotidiano
             })
         
         # Calcular estatísticas
@@ -84,7 +83,21 @@ class AIService:
         progressos_concluidos = sum(1 for p in progressos if p.concluida)
         media_pontuacao = sum(p.pontuacao for p in progressos) / total_progressos if total_progressos > 0 else 0
         
-        # Buscar atividades realizadas
+        # Estatísticas por categoria de mini-jogo
+        pontuacao_por_categoria = {}
+        for progresso in progressos:
+            if progresso.atividade:
+                categoria = progresso.atividade.categoria
+                if categoria not in pontuacao_por_categoria:
+                    pontuacao_por_categoria[categoria] = []
+                pontuacao_por_categoria[categoria].append(progresso.pontuacao)
+        
+        media_por_categoria = {
+            cat: sum(ponts) / len(ponts) if len(ponts) > 0 else 0
+            for cat, ponts in pontuacao_por_categoria.items()
+        }
+        
+        # Buscar atividades realizadas (mini-jogos)
         atividades_ids = list(set(p.atividade_id for p in progressos if p.atividade_id))
         atividades = db.query(Atividade).filter(Atividade.id.in_(atividades_ids)).all()
         
@@ -94,8 +107,7 @@ class AIService:
                 "id": atividade.id,
                 "titulo": atividade.titulo,
                 "descricao": atividade.descricao,
-                "categoria": atividade.categoria,
-                "nivel_dificuldade": atividade.nivel_dificuldade
+                "categoria": atividade.categoria  # Matemáticas, Português, Lógica ou Cotidiano
             })
         
         return DadosCriancaParaIA(
@@ -111,7 +123,9 @@ class AIService:
                 "taxa_conclusao": (progressos_concluidos / total_progressos * 100) if total_progressos > 0 else 0,
                 "media_pontuacao": round(media_pontuacao, 2),
                 "pontuacao_maxima": max((p.pontuacao for p in progressos), default=0),
-                "pontuacao_minima": min((p.pontuacao for p in progressos), default=0)
+                "pontuacao_minima": min((p.pontuacao for p in progressos), default=0),
+                "media_por_categoria": {cat: round(media, 2) for cat, media in media_por_categoria.items()},
+                "total_mini_jogos_jogados": total_progressos
             }
         )
     
@@ -133,15 +147,14 @@ class AIService:
                 tipo = crianca.diagnostico.tipo
                 diagnosticos[tipo] = diagnosticos.get(tipo, 0) + 1
         
-        # Buscar todas as atividades disponíveis
+        # Buscar todas as atividades disponíveis (mini-jogos)
         atividades = db.query(Atividade).all()
         atividades_data = []
         for atividade in atividades:
             atividades_data.append({
                 "id": atividade.id,
                 "titulo": atividade.titulo,
-                "categoria": atividade.categoria,
-                "nivel_dificuldade": atividade.nivel_dificuldade
+                "categoria": atividade.categoria  # Matemáticas, Português, Lógica ou Cotidiano
             })
         
         return DadosTurmaParaIA(
@@ -163,6 +176,9 @@ class AIService:
         Você é um especialista em terapia ocupacional e desenvolvimento infantil. 
         Analise os dados da criança abaixo e gere um relatório estruturado em JSON.
         
+        IMPORTANTE: As atividades são mini-jogos educativos com pontuação de 0 a 10. 
+        As categorias dos mini-jogos são: Matemáticas, Português, Lógica ou Cotidiano.
+        
         DADOS DA CRIANÇA:
         {dados_crianca.json()}
         
@@ -173,24 +189,33 @@ class AIService:
                 "idade": "number",
                 "diagnostico": "string",
                 "periodo_analisado": "string",
-                "total_atividades": "number",
-                "taxa_sucesso": "number"
+                "total_mini_jogos": "number",
+                "taxa_sucesso": "number",
+                "media_pontuacao": "number (0-10)"
             }},
             "areas_desenvolvimento": {{
-                "cognitiva": "string",
+                "cognitiva": "string (baseado em jogos de Lógica e Matemáticas)",
                 "motora": "string", 
                 "social": "string",
-                "linguagem": "string"
+                "linguagem": "string (baseado em jogos de Português)",
+                "cotidiano": "string (baseado em jogos de Cotidiano)"
+            }},
+            "desempenho_por_categoria": {{
+                "Matemáticas": "análise baseada nas pontuações dos mini-jogos de Matemáticas",
+                "Português": "análise baseada nas pontuações dos mini-jogos de Português",
+                "Lógica": "análise baseada nas pontuações dos mini-jogos de Lógica",
+                "Cotidiano": "análise baseada nas pontuações dos mini-jogos de Cotidiano"
             }},
             "pontos_fortes": ["string1", "string2", "string3"],
             "areas_melhoria": ["string1", "string2", "string3"],
             "recomendacoes": ["string1", "string2", "string3"],
-            "analise_detalhada": "texto longo com análise detalhada",
-            "observacoes_terapeuticas": "texto com observações técnicas",
-            "proximos_passos": "texto com próximos passos sugeridos"
+            "analise_detalhada": "texto longo com análise detalhada focando no desempenho nos mini-jogos",
+            "observacoes_terapeuticas": "texto com observações técnicas sobre o progresso nos mini-jogos",
+            "proximos_passos": "texto com próximos passos sugeridos incluindo quais categorias de mini-jogos priorizar"
         }}
         
-        Seja específico, técnico mas acessível, e baseie suas análises nos dados fornecidos.
+        Seja específico, técnico mas acessível. Analise o desempenho da criança nos mini-jogos 
+        considerando as pontuações (0-10) e as diferentes categorias. Baseie suas análises nos dados fornecidos.
         """
         
         messages = [
@@ -226,6 +251,9 @@ class AIService:
         Você é um especialista em terapia ocupacional e desenvolvimento infantil. 
         Analise os dados da turma abaixo e gere um relatório estruturado em JSON.
         
+        IMPORTANTE: As atividades são mini-jogos educativos com pontuação de 0 a 10. 
+        As categorias dos mini-jogos são: Matemáticas, Português, Lógica ou Cotidiano.
+        
         DADOS DA TURMA:
         {dados_turma.json()}
         
@@ -234,26 +262,35 @@ class AIService:
             "resumo_geral_turma": {{
                 "total_criancas": "number",
                 "diversidade_diagnosticos": "string",
-                "performance_media": "number",
+                "performance_media": "number (0-10)",
                 "engajamento_geral": "string"
             }},
             "distribuicao_diagnosticos": {{"diagnostico1": "number", "diagnostico2": "number"}},
             "performance_media": {{
-                "pontuacao_media": "number",
+                "pontuacao_media": "number (0-10)",
                 "taxa_conclusao": "number",
-                "areas_mais_desenvolvidas": ["string1", "string2"]
+                "categorias_mais_desenvolvidas": ["string1", "string2"],
+                "categorias_que_precisam_atencao": ["string1", "string2"]
             }},
-            "atividades_mais_efetivas": [
-                {{"atividade": "string", "categoria": "string", "efetividade": "string"}}
+            "desempenho_por_categoria_minijogos": {{
+                "Matemáticas": "análise coletiva do desempenho nos mini-jogos de Matemáticas",
+                "Português": "análise coletiva do desempenho nos mini-jogos de Português",
+                "Lógica": "análise coletiva do desempenho nos mini-jogos de Lógica",
+                "Cotidiano": "análise coletiva do desempenho nos mini-jogos de Cotidiano"
+            }},
+            "mini_jogos_mais_efetivos": [
+                {{"titulo": "string", "categoria": "string", "efetividade": "string", "media_pontuacao": "number"}}
             ],
             "areas_comuns_melhoria": ["string1", "string2", "string3"],
             "recomendacoes_gerais": ["string1", "string2", "string3"],
-            "analise_coletiva": "texto longo com análise da turma",
-            "observacoes_pedagogicas": "texto com observações pedagógicas",
-            "estrategias_turma": "texto com estratégias para a turma"
+            "analise_coletiva": "texto longo com análise da turma focando no desempenho coletivo nos mini-jogos",
+            "observacoes_pedagogicas": "texto com observações pedagógicas sobre o uso dos mini-jogos",
+            "estrategias_turma": "texto com estratégias para a turma incluindo quais categorias de mini-jogos priorizar"
         }}
         
-        Analise padrões coletivos, identifique necessidades comuns e sugira estratégias grupais.
+        Analise padrões coletivos nos mini-jogos, identifique necessidades comuns, 
+        categorize por tipo de mini-jogo (Matemáticas, Português, Lógica, Cotidiano) 
+        e sugira estratégias grupais baseadas no desempenho médio (0-10) da turma.
         """
         
         messages = [

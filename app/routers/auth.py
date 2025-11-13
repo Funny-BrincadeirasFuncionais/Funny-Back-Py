@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioResponse, UsuarioLogin, Token
 from app.auth import hash_password, verify_password, create_access_token
+import httpx
 from app.models.responsavel import Responsavel
 from datetime import timedelta
 from app.config import settings
@@ -59,6 +60,25 @@ def register(user_data: UsuarioCreate, db: Session = Depends(get_db)):
 def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db)):
     """Login do usuário"""
     
+    # If recaptcha_secret is configured, require recaptcha_token and verify it
+    if settings.recaptcha_secret:
+        token = user_credentials.recaptcha_token
+        if not token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reCAPTCHA token missing")
+        try:
+            verify_url = "https://www.google.com/recaptcha/api/siteverify"
+            resp = httpx.post(verify_url, data={"secret": settings.recaptcha_secret, "response": token}, timeout=10.0)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"reCAPTCHA verification error: {str(e)}")
+
+        try:
+            result = resp.json()
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid response from reCAPTCHA verification service")
+
+        if not result.get("success"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reCAPTCHA verification failed")
+
     # Buscar usuário
     user = db.query(Usuario).filter(Usuario.email == user_credentials.email).first()
     if not user:

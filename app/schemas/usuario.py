@@ -14,6 +14,7 @@ class UsuarioCreate(UsuarioBase):
 class UsuarioLogin(BaseModel):
     email: EmailStr
     senha: str
+    recaptcha_token: Optional[str] = None
 
 
 class UsuarioResponse(UsuarioBase):

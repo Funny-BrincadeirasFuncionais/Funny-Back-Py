@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     app_name: str = "Funny Backend API"
     app_version: str = "1.0.0"
     debug: bool = True
+    # reCAPTCHA (Google)
+    recaptcha_secret: str | None = None
+    recaptcha_site_key: str | None = None
     
     class Config:
         env_file = ".env"

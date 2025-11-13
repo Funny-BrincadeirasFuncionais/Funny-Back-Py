@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.database import get_db
@@ -57,7 +57,7 @@ def register(user_data: UsuarioCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db)):
+def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db), request: Request = None):
     """Login do usuário"""
     
     # If recaptcha_secret is configured, require recaptcha_token and verify it
@@ -65,6 +65,13 @@ def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db)):
         token = user_credentials.recaptcha_token
         if not token:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reCAPTCHA token missing")
+        # Temporary debug logging: print masked token and client info. Remove in production.
+        try:
+            client_host = request.client.host if request is not None and request.client else 'unknown'
+        except Exception:
+            client_host = 'unknown'
+        masked = (token[:6] + '...' + token[-6:]) if len(token) > 12 else token
+        print(f"[reCAPTCHA] token received from {client_host} at {__import__('datetime').datetime.utcnow().isoformat()} masked={masked}", file=__import__('sys').stderr)
         try:
             verify_url = "https://www.google.com/recaptcha/api/siteverify"
             resp = httpx.post(verify_url, data={"secret": settings.recaptcha_secret, "response": token}, timeout=10.0)

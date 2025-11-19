@@ -54,8 +54,9 @@ async def gerar_relatorio_turma(
     current_user: Usuario = Depends(get_current_user)
 ):
     """
-    Gera relatório da turma inteira usando IA
+    Gera relatório da turma usando IA
     
+    - **turma_id**: ID da turma para análise (opcional, se não informado analisa todas as turmas)
     - **incluir_progresso**: Se deve incluir dados de progresso (padrão: True)
     - **incluir_atividades**: Se deve incluir dados de atividades (padrão: True)
     - **periodo_dias**: Número de dias para análise (opcional, se não informado analisa todo histórico)
@@ -63,9 +64,15 @@ async def gerar_relatorio_turma(
     try:
         relatorio = await ai_service.gerar_relatorio_turma(
             db=db,
+            turma_id=request.turma_id,
             periodo_dias=request.periodo_dias
         )
         return relatorio
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -105,6 +112,7 @@ async def preview_dados_crianca(
 
 @router.get("/turma/preview")
 async def preview_dados_turma(
+    turma_id: int = None,
     periodo_dias: int = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
@@ -113,7 +121,7 @@ async def preview_dados_turma(
     Visualiza os dados da turma que serão enviados para a IA (útil para debug)
     """
     try:
-        dados = ai_service._prepare_turma_data(db, periodo_dias)
+        dados = ai_service._prepare_turma_data(db, turma_id=turma_id, periodo_dias=periodo_dias)
         return {
             "total_criancas": dados.total_criancas,
             "dados_preparados": dados.dict(),

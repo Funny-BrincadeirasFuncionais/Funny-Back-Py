@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.crianca import Crianca
 from app.models.progresso import Progresso
 from app.models.atividade import Atividade
+from app.models.turma import Turma
 from app.schemas.relatorio_ia import (
     DadosCriancaParaIA, 
     DadosTurmaParaIA,
@@ -129,10 +130,18 @@ class AIService:
             }
         )
     
-    def _prepare_turma_data(self, db: Session, periodo_dias: int = None) -> DadosTurmaParaIA:
+    def _prepare_turma_data(self, db: Session, turma_id: int = None, periodo_dias: int = None) -> DadosTurmaParaIA:
         """Prepara dados da turma para análise pela IA"""
-        # Buscar todas as crianças
-        criancas = db.query(Crianca).all()
+        # Validar turma se turma_id fornecido
+        if turma_id:
+            turma = db.query(Turma).filter(Turma.id == turma_id).first()
+            if not turma:
+                raise ValueError(f"Turma com ID {turma_id} não encontrada")
+            # Buscar crianças da turma específica
+            criancas = db.query(Crianca).filter(Crianca.turma_id == turma_id).all()
+        else:
+            # Se não especificado, buscar todas (compatibilidade retroativa)
+            criancas = db.query(Crianca).all()
         
         dados_criancas = []
         for crianca in criancas:
@@ -147,8 +156,26 @@ class AIService:
                 tipo = crianca.diagnostico.tipo
                 diagnosticos[tipo] = diagnosticos.get(tipo, 0) + 1
         
-        # Buscar todas as atividades disponíveis (mini-jogos)
-        atividades = db.query(Atividade).all()
+        # Buscar atividades disponíveis (mini-jogos)
+        # Se há turma específica, buscar IDs de atividades realizadas pelas crianças da turma
+        if turma_id and criancas:
+            # Coletar IDs de atividades das crianças da turma
+            atividades_ids = set()
+            for crianca in criancas:
+                progressos_crianca = db.query(Progresso).filter(Progresso.crianca_id == crianca.id).all()
+                for progresso in progressos_crianca:
+                    if progresso.atividade_id:
+                        atividades_ids.add(progresso.atividade_id)
+            
+            if atividades_ids:
+                atividades = db.query(Atividade).filter(Atividade.id.in_(list(atividades_ids))).all()
+            else:
+                # Se não houver atividades, buscar todas (fallback)
+                atividades = db.query(Atividade).all()
+        else:
+            # Buscar todas as atividades disponíveis
+            atividades = db.query(Atividade).all()
+        
         atividades_data = []
         for atividade in atividades:
             atividades_data.append({
@@ -185,20 +212,9 @@ class AIService:
         Gere um relatório JSON com a seguinte estrutura:
         {{
             "resumo_geral": {{
-                "nome": "string",
-                "idade": "number",
-                "diagnostico": "string",
-                "periodo_analisado": "string",
                 "total_mini_jogos": "number",
                 "taxa_sucesso": "number",
                 "media_pontuacao": "number (0-10)"
-            }},
-            "areas_desenvolvimento": {{
-                "cognitiva": "string (baseado em jogos de Lógica e Matemáticas)",
-                "motora": "string", 
-                "social": "string",
-                "linguagem": "string (baseado em jogos de Português)",
-                "cotidiano": "string (baseado em jogos de Cotidiano)"
             }},
             "desempenho_por_categoria": {{
                 "Matemáticas": "análise baseada nas pontuações dos mini-jogos de Matemáticas",
@@ -206,12 +222,7 @@ class AIService:
                 "Lógica": "análise baseada nas pontuações dos mini-jogos de Lógica",
                 "Cotidiano": "análise baseada nas pontuações dos mini-jogos de Cotidiano"
             }},
-            "pontos_fortes": ["string1", "string2", "string3"],
-            "areas_melhoria": ["string1", "string2", "string3"],
-            "recomendacoes": ["string1", "string2", "string3"],
-            "analise_detalhada": "texto longo com análise detalhada focando no desempenho nos mini-jogos",
-            "observacoes_terapeuticas": "texto com observações técnicas sobre o progresso nos mini-jogos",
-            "proximos_passos": "texto com próximos passos sugeridos incluindo quais categorias de mini-jogos priorizar"
+            "resumo": "resumo executivo curto (2-3 parágrafos) destacando os principais pontos do relatório"
         }}
         
         Seja específico, técnico mas acessível. Analise o desempenho da criança nos mini-jogos 
@@ -232,21 +243,15 @@ class AIService:
             idade=dados_crianca.idade,
             diagnostico=dados_crianca.diagnostico,
             resumo_geral=relatorio_data["resumo_geral"],
-            areas_desenvolvimento=relatorio_data["areas_desenvolvimento"],
             desempenho_por_categoria=relatorio_data.get("desempenho_por_categoria", {}),
-            pontos_fortes=relatorio_data["pontos_fortes"],
-            areas_melhoria=relatorio_data["areas_melhoria"],
-            recomendacoes=relatorio_data["recomendacoes"],
-            analise_detalhada=relatorio_data["analise_detalhada"],
-            observacoes_terapeuticas=relatorio_data["observacoes_terapeuticas"],
-            proximos_passos=relatorio_data["proximos_passos"],
+            resumo=relatorio_data.get("resumo", ""),
             data_geracao=datetime.now(),
             periodo_analisado=f"Últimos {periodo_dias} dias" if periodo_dias else "Todo o histórico"
         )
     
-    async def gerar_relatorio_turma(self, db: Session, periodo_dias: int = None) -> RelatorioTurmaResponse:
+    async def gerar_relatorio_turma(self, db: Session, turma_id: int = None, periodo_dias: int = None) -> RelatorioTurmaResponse:
         """Gera relatório da turma usando IA"""
-        dados_turma = self._prepare_turma_data(db, periodo_dias)
+        dados_turma = self._prepare_turma_data(db, turma_id=turma_id, periodo_dias=periodo_dias)
         
         prompt = f"""
         Você é um especialista em terapia ocupacional e desenvolvimento infantil. 
@@ -262,32 +267,17 @@ class AIService:
         {{
             "resumo_geral_turma": {{
                 "total_criancas": "number",
-                "total_atividades": "number",
-                "diversidade_diagnosticos": "string",
-                "performance_media": "number (0-10)",
-                "engajamento_geral": "string"
+                "total_atividades": "number"
             }},
             "distribuicao_diagnosticos": {{"diagnostico1": "number", "diagnostico2": "number"}},
             "performance_media": {{
                 "pontuacao_media": "number (0-10)",
-                "taxa_conclusao": "number",
-                "categorias_mais_desenvolvidas": ["string1", "string2"],
-                "categorias_que_precisam_atencao": ["string1", "string2"]
-            }},
-            "desempenho_por_categoria_minijogos": {{
-                "Matemáticas": "análise coletiva do desempenho nos mini-jogos de Matemáticas",
-                "Português": "análise coletiva do desempenho nos mini-jogos de Português",
-                "Lógica": "análise coletiva do desempenho nos mini-jogos de Lógica",
-                "Cotidiano": "análise coletiva do desempenho nos mini-jogos de Cotidiano"
+                "taxa_conclusao": "number"
             }},
             "atividades_mais_efetivas": [
-                {{"titulo": "string", "categoria": "string", "efetividade": "string", "media_pontuacao": "number"}}
+                {{"titulo": "string", "categoria": "string", "media_pontuacao": "number"}}
             ],
-            "areas_comuns_melhoria": ["string1", "string2", "string3"],
-            "recomendacoes_gerais": ["string1", "string2", "string3"],
-            "analise_coletiva": "texto longo com análise da turma focando no desempenho coletivo nos mini-jogos",
-            "observacoes_pedagogicas": "texto com observações pedagógicas sobre o uso dos mini-jogos",
-            "estrategias_turma": "texto com estratégias para a turma incluindo quais categorias de mini-jogos priorizar"
+            "resumo": "resumo executivo curto (2-3 parágrafos) destacando os principais pontos do relatório da turma"
         }}
         
         Analise padrões coletivos nos mini-jogos, identifique necessidades comuns, 
@@ -309,11 +299,7 @@ class AIService:
             distribuicao_diagnosticos=relatorio_data["distribuicao_diagnosticos"],
             performance_media=relatorio_data["performance_media"],
             atividades_mais_efetivas=relatorio_data["atividades_mais_efetivas"],
-            areas_comuns_melhoria=relatorio_data["areas_comuns_melhoria"],
-            recomendacoes_gerais=relatorio_data["recomendacoes_gerais"],
-            analise_coletiva=relatorio_data["analise_coletiva"],
-            observacoes_pedagogicas=relatorio_data["observacoes_pedagogicas"],
-            estrategias_turma=relatorio_data["estrategias_turma"],
+            resumo=relatorio_data.get("resumo", ""),
             data_geracao=datetime.now(),
             periodo_analisado=f"Últimos {periodo_dias} dias" if periodo_dias else "Todo o histórico"
         )

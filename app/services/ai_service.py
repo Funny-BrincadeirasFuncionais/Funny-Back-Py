@@ -47,7 +47,7 @@ class AIService:
                 self.base_url,
                 headers=headers,
                 json=payload,
-                timeout=30.0
+                timeout=120.0  # Timeout aumentado para 2 minutos (OpenAI pode demorar)
             )
             response.raise_for_status()
             return response.json()
@@ -233,6 +233,7 @@ class AIService:
             diagnostico=dados_crianca.diagnostico,
             resumo_geral=relatorio_data["resumo_geral"],
             areas_desenvolvimento=relatorio_data["areas_desenvolvimento"],
+            desempenho_por_categoria=relatorio_data.get("desempenho_por_categoria", {}),
             pontos_fortes=relatorio_data["pontos_fortes"],
             areas_melhoria=relatorio_data["areas_melhoria"],
             recomendacoes=relatorio_data["recomendacoes"],
@@ -261,6 +262,7 @@ class AIService:
         {{
             "resumo_geral_turma": {{
                 "total_criancas": "number",
+                "total_atividades": "number",
                 "diversidade_diagnosticos": "string",
                 "performance_media": "number (0-10)",
                 "engajamento_geral": "string"
@@ -278,7 +280,7 @@ class AIService:
                 "Lógica": "análise coletiva do desempenho nos mini-jogos de Lógica",
                 "Cotidiano": "análise coletiva do desempenho nos mini-jogos de Cotidiano"
             }},
-            "mini_jogos_mais_efetivos": [
+            "atividades_mais_efetivas": [
                 {{"titulo": "string", "categoria": "string", "efetividade": "string", "media_pontuacao": "number"}}
             ],
             "areas_comuns_melhoria": ["string1", "string2", "string3"],

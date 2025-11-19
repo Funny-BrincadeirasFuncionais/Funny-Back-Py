@@ -131,9 +131,8 @@ async def health_check_ai():
     """
     Verifica se o serviço de IA está configurado corretamente
     """
-    import os
-    
-    api_key_configured = bool(os.getenv("OPENAI_API_KEY"))
+    # Verificar se a chave está configurada no AIService (que lê do settings ou env)
+    api_key_configured = bool(ai_service.api_key)
     
     return {
         "status": "healthy" if api_key_configured else "misconfigured",

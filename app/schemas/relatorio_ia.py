@@ -28,6 +28,7 @@ class RelatorioCriancaResponse(BaseModel):
     # Campos estruturados (fechados)
     resumo_geral: Dict[str, Any]
     areas_desenvolvimento: Dict[str, Any]
+    desempenho_por_categoria: Dict[str, Any]  # Desempenho por categoria de mini-jogo (Matemáticas, Português, Lógica, Cotidiano)
     pontos_fortes: List[str]
     areas_melhoria: List[str]
     recomendacoes: List[str]
@@ -49,7 +50,7 @@ class RelatorioTurmaResponse(BaseModel):
     # Campos estruturados (fechados)
     resumo_geral_turma: Dict[str, Any]
     distribuicao_diagnosticos: Dict[str, int]
-    performance_media: Dict[str, float]
+    performance_media: Dict[str, Any]  # Pode conter floats e listas
     atividades_mais_efetivas: List[Dict[str, Any]]
     areas_comuns_melhoria: List[str]
     recomendacoes_gerais: List[str]

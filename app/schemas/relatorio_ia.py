@@ -13,6 +13,7 @@ class RelatorioCriancaRequest(BaseModel):
 
 class RelatorioTurmaRequest(BaseModel):
     """Schema para solicitação de relatório de turma"""
+    turma_id: Optional[int] = None  # Se None, analisa todas as turmas (compatibilidade retroativa)
     incluir_progresso: bool = True
     incluir_atividades: bool = True
     periodo_dias: Optional[int] = None  # Se None, inclui todo o histórico
@@ -26,16 +27,11 @@ class RelatorioCriancaResponse(BaseModel):
     diagnostico: str
     
     # Campos estruturados (fechados)
-    resumo_geral: Dict[str, Any]
-    areas_desenvolvimento: Dict[str, Any]
-    pontos_fortes: List[str]
-    areas_melhoria: List[str]
-    recomendacoes: List[str]
+    resumo_geral: Dict[str, Any]  # Contém: media_pontuacao, taxa_sucesso, total_mini_jogos
+    desempenho_por_categoria: Dict[str, Any]  # Desempenho por categoria de mini-jogo (Matemáticas, Português, Lógica, Cotidiano)
     
     # Campos abertos (texto livre)
-    analise_detalhada: str
-    observacoes_terapeuticas: str
-    proximos_passos: str
+    resumo: str  # Resumo executivo do relatório
     
     # Metadados
     data_geracao: datetime
@@ -47,17 +43,13 @@ class RelatorioTurmaResponse(BaseModel):
     total_criancas: int
     
     # Campos estruturados (fechados)
-    resumo_geral_turma: Dict[str, Any]
+    resumo_geral_turma: Dict[str, Any]  # Contém: total_atividades
     distribuicao_diagnosticos: Dict[str, int]
-    performance_media: Dict[str, float]
-    atividades_mais_efetivas: List[Dict[str, Any]]
-    areas_comuns_melhoria: List[str]
-    recomendacoes_gerais: List[str]
+    performance_media: Dict[str, Any]  # Contém: pontuacao_media, taxa_conclusao
+    atividades_mais_efetivas: List[Dict[str, Any]]  # Contém: titulo, categoria, media_pontuacao
     
     # Campos abertos (texto livre)
-    analise_coletiva: str
-    observacoes_pedagogicas: str
-    estrategias_turma: str
+    resumo: str  # Resumo executivo do relatório da turma
     
     # Metadados
     data_geracao: datetime

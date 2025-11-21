@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso, relatorios_ia
+from app.routers import auth, turmas, responsaveis, diagnosticos, criancas, atividades, progresso, relatorios_ia, recaptcha
 import sys
 import traceback
 from fastapi.responses import JSONResponse
@@ -42,6 +42,7 @@ app.include_router(atividades.router)
 app.include_router(progresso.router)
 app.include_router(relatorios_ia.router)
 app.include_router(turmas.router)
+app.include_router(recaptcha.router)
 
 
 @app.exception_handler(IntegrityError)

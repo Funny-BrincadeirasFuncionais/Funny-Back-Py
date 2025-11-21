@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
@@ -13,7 +15,6 @@ from app.auth.dependencies import get_current_user
 from app.models.usuario import Usuario
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError, ProgrammingError, OperationalError
-from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/progresso", tags=["Progresso"])
 
@@ -34,7 +35,7 @@ class RegistrarMiniJogoRequest(BaseModel):
     observacoes: Optional[str] = Field(None, description="Observações opcionais sobre o desempenho")
 
 
-@router.post("/registrar-minijogo", response_model=ProgressoResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/registrar-minijogo", response_model=ProgressoResponse)
 def registrar_minijogo(
     request: RegistrarMiniJogoRequest,
     db: Session = Depends(get_db),
@@ -44,12 +45,21 @@ def registrar_minijogo(
     Registrar resultado de um mini-jogo completo
     
     Este endpoint é usado quando o front-end termina de rodar um mini-jogo.
-    Cria automaticamente a atividade (com ID único) e registra o progresso.
+    Busca ou cria a atividade (mesmo título + categoria = mesma atividade) e 
+    atualiza ou cria o progresso (mesma criança + atividade = atualiza progresso existente).
     
     - **pontuacao**: Nota obtida (0 a 10)
     - **categoria**: Matemáticas, Português, Lógica ou Cotidiano
     - **crianca_id**: ID do aluno que realizou
+    - **titulo**: Título da atividade (ex: "Jogo da Memória", "Família de Palavras")
+    - **descricao**: Descrição da atividade
+    - **observacoes**: Observações opcionais
     - **responsavel_id**: Automático (determinado a partir da turma/criança)
+    
+    Comportamento:
+    - Se a atividade (título + categoria) já existe, reutiliza ela
+    - Se o progresso (criança + atividade) já existe, atualiza ao invés de criar novo
+    - Retorna 200 (OK) se atualizou, 201 (Created) se criou novo
     """
     # Log payload para debug (temporário)
     try:
@@ -72,17 +82,27 @@ def registrar_minijogo(
             detail="Pontuação deve estar entre 0 e 10"
         )
     
-    # Criar atividade (cada atividade tem ID único, mesmo que mesma categoria)
-    # `titulo` e `descricao` devem ser enviados pelo front-end (requerido no schema)
-    nova_atividade = Atividade(
-        categoria=request.categoria,
-        titulo=request.titulo,
-        descricao=request.descricao,
-        nivel_dificuldade=1,
-    )
     try:
-        db.add(nova_atividade)
-        db.flush()  # Para obter o ID da atividade
+        # Buscar ou criar atividade (mesmo título e categoria = mesma atividade)
+        atividade_existente = db.query(Atividade).filter(
+            Atividade.titulo == request.titulo,
+            Atividade.categoria == request.categoria
+        ).first()
+        
+        if atividade_existente:
+            # Usar atividade existente
+            atividade = atividade_existente
+        else:
+            # Criar nova atividade apenas se não existir
+            nova_atividade = Atividade(
+                categoria=request.categoria,
+                titulo=request.titulo,
+                descricao=request.descricao,
+                nivel_dificuldade=1,
+            )
+            db.add(nova_atividade)
+            db.flush()  # Para obter o ID da atividade
+            atividade = nova_atividade
 
         # Determine responsavel_id from the child's turma (if available)
         crianca = db.query(Crianca).filter(Crianca.id == request.crianca_id).first()
@@ -97,19 +117,38 @@ def registrar_minijogo(
             if turma:
                 responsavel_id = turma.responsavel_id
 
-        # Criar progresso
-        novo_progresso = Progresso(
-            pontuacao=request.pontuacao,
-            observacoes=request.observacoes,
-            concluida=True,  # Se chegou aqui, foi concluída
-            crianca_id=request.crianca_id,
-            atividade_id=nova_atividade.id,
-            responsavel_id=responsavel_id
-        )
-        db.add(novo_progresso)
-        db.commit()
-        db.refresh(novo_progresso)
-        return novo_progresso
+        # Verificar se já existe progresso para esta criança + atividade
+        progresso_existente = db.query(Progresso).filter(
+            Progresso.crianca_id == request.crianca_id,
+            Progresso.atividade_id == atividade.id
+        ).first()
+
+        if progresso_existente:
+            # Atualizar progresso existente ao invés de criar novo
+            progresso_existente.pontuacao = request.pontuacao
+            progresso_existente.observacoes = request.observacoes
+            progresso_existente.concluida = True
+            progresso_existente.responsavel_id = responsavel_id
+            db.add(progresso_existente)
+            db.commit()
+            db.refresh(progresso_existente)
+            # Retornar 200 (OK) para atualização
+            return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(progresso_existente))
+        else:
+            # Criar novo progresso apenas se não existir
+            novo_progresso = Progresso(
+                pontuacao=request.pontuacao,
+                observacoes=request.observacoes,
+                concluida=True,  # Se chegou aqui, foi concluída
+                crianca_id=request.crianca_id,
+                atividade_id=atividade.id,
+                responsavel_id=responsavel_id
+            )
+            db.add(novo_progresso)
+            db.commit()
+            db.refresh(novo_progresso)
+            # Retornar 201 (Created) para criação
+            return JSONResponse(status_code=status.HTTP_201_CREATED, content=jsonable_encoder(novo_progresso))
     except IntegrityError as e:
         db.rollback()
         # FK violation or not-null constraint
@@ -128,9 +167,6 @@ def registrar_minijogo(
         db.rollback()
         logger.exception("Unexpected error in registrar_minijogo")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
-
-
-from fastapi.encoders import jsonable_encoder
 
 
 @router.post("/registrar", response_model=ProgressoResponse)
@@ -164,12 +200,14 @@ def registrar_progresso(
                     responsavel_id = turma.responsavel_id
     progresso_dict['responsavel_id'] = responsavel_id
     
-    # Try to find an existing progresso for this atividade + crianca (created by registrar-minijogo)
+    # Try to find an existing progresso for this atividade + crianca
+    # Com a mudança em registrar_minijogo, não deve haver múltiplos registros,
+    # mas mantemos a busca para compatibilidade com dados antigos
     try:
         existing = db.query(Progresso).filter(
             Progresso.atividade_id == progresso_dict.get('atividade_id'),
             Progresso.crianca_id == progresso_dict.get('crianca_id')
-        ).order_by(Progresso.id.desc()).first()
+        ).first()  # Removido order_by pois não deve haver múltiplos
 
         if existing:
             # Update the existing progresso instead of creating a duplicate
@@ -181,7 +219,8 @@ def registrar_progresso(
             db.add(existing)
             db.commit()
             db.refresh(existing)
-            return existing
+            # Retornar 200 (OK) para atualização
+            return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(existing))
 
         # No existing progresso found -> create a new one
         new_progresso = Progresso(**progresso_dict)

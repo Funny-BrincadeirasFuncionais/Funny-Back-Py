@@ -33,6 +33,7 @@ class RegistrarMiniJogoRequest(BaseModel):
     titulo: str = Field(..., description="Título da atividade gerada (deve ser enviado pelo front)")
     descricao: str = Field(..., description="Descrição da atividade gerada (deve ser enviada pelo front)")
     observacoes: Optional[str] = Field(None, description="Observações opcionais sobre o desempenho")
+    tempo_segundos: Optional[int] = Field(None, ge=0, description="Tempo em segundos para completar a atividade (opcional)")
 
 
 @router.post("/registrar-minijogo", response_model=ProgressoResponse)
@@ -129,6 +130,8 @@ def registrar_minijogo(
             progresso_existente.observacoes = request.observacoes
             progresso_existente.concluida = True
             progresso_existente.responsavel_id = responsavel_id
+            if request.tempo_segundos is not None:
+                progresso_existente.tempo_segundos = request.tempo_segundos
             db.add(progresso_existente)
             db.commit()
             db.refresh(progresso_existente)
@@ -142,7 +145,8 @@ def registrar_minijogo(
                 concluida=True,  # Se chegou aqui, foi concluída
                 crianca_id=request.crianca_id,
                 atividade_id=atividade.id,
-                responsavel_id=responsavel_id
+                responsavel_id=responsavel_id,
+                tempo_segundos=request.tempo_segundos
             )
             db.add(novo_progresso)
             db.commit()
@@ -214,6 +218,8 @@ def registrar_progresso(
             existing.pontuacao = progresso_dict.get('pontuacao', existing.pontuacao)
             existing.observacoes = progresso_dict.get('observacoes', existing.observacoes)
             existing.concluida = progresso_dict.get('concluida', existing.concluida)
+            if 'tempo_segundos' in progresso_dict and progresso_dict['tempo_segundos'] is not None:
+                existing.tempo_segundos = progresso_dict['tempo_segundos']
             # Keep/update responsavel association from child's turma
             existing.responsavel_id = progresso_dict.get('responsavel_id', existing.responsavel_id)
             db.add(existing)

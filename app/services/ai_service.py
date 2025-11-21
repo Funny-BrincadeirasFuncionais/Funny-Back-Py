@@ -76,7 +76,8 @@ class AIService:
                 "concluida": progresso.concluida,
                 "observacoes": progresso.observacoes,
                 "atividade_titulo": progresso.atividade.titulo if progresso.atividade else None,
-                "atividade_categoria": progresso.atividade.categoria if progresso.atividade else None  # Matemáticas, Português, Lógica ou Cotidiano
+                "atividade_categoria": progresso.atividade.categoria if progresso.atividade else None,  # Matemáticas, Português, Lógica ou Cotidiano
+                "tempo_segundos": progresso.tempo_segundos  # Tempo em segundos (pode ser None)
             })
         
         # Calcular estatísticas
@@ -97,6 +98,28 @@ class AIService:
             cat: sum(ponts) / len(ponts) if len(ponts) > 0 else 0
             for cat, ponts in pontuacao_por_categoria.items()
         }
+        
+        # Calcular tempo médio (apenas para progressos com tempo registrado)
+        tempos_validos = [p.tempo_segundos for p in progressos if p.tempo_segundos is not None]
+        tempo_medio_segundos = sum(tempos_validos) / len(tempos_validos) if len(tempos_validos) > 0 else None
+        tempo_medio_minutos = round(tempo_medio_segundos / 60, 2) if tempo_medio_segundos is not None else None
+        
+        # Calcular tempo médio por categoria
+        tempo_por_categoria = {}
+        for progresso in progressos:
+            if progresso.atividade and progresso.tempo_segundos is not None:
+                categoria = progresso.atividade.categoria
+                if categoria not in tempo_por_categoria:
+                    tempo_por_categoria[categoria] = []
+                tempo_por_categoria[categoria].append(progresso.tempo_segundos)
+        
+        tempo_medio_por_categoria = {}
+        for cat, tempos in tempo_por_categoria.items():
+            if len(tempos) > 0:
+                tempo_medio_por_categoria[cat] = {
+                    "segundos": round(sum(tempos) / len(tempos), 2),
+                    "minutos": round(sum(tempos) / len(tempos) / 60, 2)
+                }
         
         # Buscar atividades realizadas (mini-jogos)
         atividades_ids = list(set(p.atividade_id for p in progressos if p.atividade_id))
@@ -126,7 +149,10 @@ class AIService:
                 "pontuacao_maxima": max((p.pontuacao for p in progressos), default=0),
                 "pontuacao_minima": min((p.pontuacao for p in progressos), default=0),
                 "media_por_categoria": {cat: round(media, 2) for cat, media in media_por_categoria.items()},
-                "total_mini_jogos_jogados": total_progressos
+                "total_mini_jogos_jogados": total_progressos,
+                "tempo_medio_segundos": tempo_medio_segundos,
+                "tempo_medio_minutos": tempo_medio_minutos,
+                "tempo_medio_por_categoria": tempo_medio_por_categoria
             }
         )
     
@@ -155,6 +181,16 @@ class AIService:
             if crianca.diagnostico:
                 tipo = crianca.diagnostico.tipo
                 diagnosticos[tipo] = diagnosticos.get(tipo, 0) + 1
+        
+        # Calcular tempo médio geral da turma
+        todos_tempos = []
+        for dados_crianca in dados_criancas:
+            for progresso in dados_crianca.progressos:
+                if progresso.get("tempo_segundos") is not None:
+                    todos_tempos.append(progresso["tempo_segundos"])
+        
+        tempo_medio_turma_segundos = sum(todos_tempos) / len(todos_tempos) if len(todos_tempos) > 0 else None
+        tempo_medio_turma_minutos = round(tempo_medio_turma_segundos / 60, 2) if tempo_medio_turma_segundos is not None else None
         
         # Buscar atividades disponíveis (mini-jogos)
         # Se há turma específica, buscar IDs de atividades realizadas pelas crianças da turma
@@ -190,7 +226,9 @@ class AIService:
             estatisticas_gerais={
                 "distribuicao_diagnosticos": diagnosticos,
                 "total_atividades": len(atividades),
-                "categorias_atividades": list(set(a.categoria for a in atividades))
+                "categorias_atividades": list(set(a.categoria for a in atividades)),
+                "tempo_medio_minutos": tempo_medio_turma_minutos,
+                "tempo_medio_segundos": tempo_medio_turma_segundos
             },
             atividades_disponiveis=atividades_data
         )
@@ -214,7 +252,8 @@ class AIService:
             "resumo_geral": {{
                 "total_mini_jogos": "number",
                 "taxa_sucesso": "number",
-                "media_pontuacao": "number (0-10)"
+                "media_pontuacao": "number (0-10)",
+                "tempo_medio_minutos": "number (tempo médio em minutos para completar atividades, se disponível)"
             }},
             "desempenho_por_categoria": {{
                 "Matemáticas": "análise baseada nas pontuações dos mini-jogos de Matemáticas",
@@ -272,7 +311,8 @@ class AIService:
             "distribuicao_diagnosticos": {{"diagnostico1": "number", "diagnostico2": "number"}},
             "performance_media": {{
                 "pontuacao_media": "number (0-10)",
-                "taxa_conclusao": "number"
+                "taxa_conclusao": "number",
+                "tempo_medio_minutos": "number (tempo médio em minutos para completar atividades, se disponível)"
             }},
             "atividades_mais_efetivas": [
                 {{"titulo": "string", "categoria": "string", "media_pontuacao": "number"}}

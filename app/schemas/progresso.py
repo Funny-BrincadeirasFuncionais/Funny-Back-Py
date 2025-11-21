@@ -12,12 +12,20 @@ class ProgressoBase(BaseModel):
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
     atividade_id: int = Field(..., description="ID da atividade (mini-jogo)")
     responsavel_id: Optional[int] = Field(None, description="ID do responsavel associado ao progresso (preenchido automaticamente a partir da criança/turma)")
+    tempo_segundos: Optional[int] = Field(None, ge=0, description="Tempo em segundos para completar a atividade (opcional)")
     
     @field_validator('pontuacao')
     @classmethod
     def validate_pontuacao(cls, v):
         if v < 0:
             raise ValueError("Pontuação deve ser maior ou igual a 0")
+        return v
+    
+    @field_validator('tempo_segundos')
+    @classmethod
+    def validate_tempo_segundos(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("Tempo em segundos deve ser maior ou igual a 0")
         return v
 
 
@@ -29,6 +37,7 @@ class ProgressoCreate(BaseModel):
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
     atividade_id: int = Field(..., description="ID da atividade (mini-jogo)")
     responsavel_id: Optional[int] = Field(None, description="ID do responsavel (opcional, preenchido automaticamente a partir da criança/turma)")
+    tempo_segundos: Optional[int] = Field(None, ge=0, description="Tempo em segundos para completar a atividade (opcional)")
     
     @field_validator('pontuacao')
     @classmethod
@@ -36,18 +45,33 @@ class ProgressoCreate(BaseModel):
         if v < 0:
             raise ValueError("Pontuação deve ser maior ou igual a 0")
         return v
+    
+    @field_validator('tempo_segundos')
+    @classmethod
+    def validate_tempo_segundos(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("Tempo em segundos deve ser maior ou igual a 0")
+        return v
 
 
 class ProgressoUpdate(BaseModel):
     pontuacao: Optional[int] = Field(None, ge=0, description="Pontuação do mini-jogo")
     observacoes: Optional[str] = None
     concluida: Optional[bool] = None
+    tempo_segundos: Optional[int] = Field(None, ge=0, description="Tempo em segundos para completar a atividade (opcional)")
     
     @field_validator('pontuacao')
     @classmethod
     def validate_pontuacao(cls, v):
         if v is not None and v < 0:
             raise ValueError("Pontuação deve ser maior ou igual a 0")
+        return v
+    
+    @field_validator('tempo_segundos')
+    @classmethod
+    def validate_tempo_segundos(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("Tempo em segundos deve ser maior ou igual a 0")
         return v
 
 

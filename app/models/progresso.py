@@ -19,8 +19,8 @@ class Progresso(Base):
     # relate progresso to a responsavel (guardian/parent) instead. We keep the
     # column nullable initially to avoid breaking existing data during migration.
     responsavel_id = Column(Integer, ForeignKey("responsaveis.id"), nullable=True)
+    tempo_segundos = Column(Integer, nullable=True)  # Tempo em segundos para completar a atividade (opcional para compatibilidade retroativa)
 
     # Relacionamentos
     crianca = relationship("Crianca", back_populates="progressos")
     atividade = relationship("Atividade", back_populates="progressos")
-    responsavel = relationship("Responsavel")

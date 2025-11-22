@@ -259,8 +259,10 @@ def get_progresso_crianca(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Buscar progresso de uma criança específica"""
-    progressos = db.query(Progresso).filter(Progresso.crianca_id == crianca_id).all()
+    """Buscar progresso de uma criança específica, ordenado por data (mais recentes primeiro)"""
+    progressos = db.query(Progresso).filter(
+        Progresso.crianca_id == crianca_id
+    ).order_by(Progresso.created_at.desc()).all()
     return progressos
 
 

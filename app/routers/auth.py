@@ -38,7 +38,11 @@ def register(user_data: UsuarioCreate, db: Session = Depends(get_db)):
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        
+        # Debug: log created user email/id
+        try:
+            print(f"[auth.register] created user id={new_user.id} email={new_user.email}", file=__import__('sys').stderr)
+        except Exception:
+            pass
         return new_user
 
     except IntegrityError:
@@ -88,7 +92,18 @@ def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db), request
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reCAPTCHA verification failed")
 
     # Buscar usuário
+    try:
+        print(f"[auth.login] incoming email={user_credentials.email}", file=__import__('sys').stderr)
+    except Exception:
+        pass
     user = db.query(Usuario).filter(Usuario.email == user_credentials.email).first()
+    try:
+        if user:
+            print(f"[auth.login] found user id={user.id} email={user.email}", file=__import__('sys').stderr)
+        else:
+            print(f"[auth.login] no user found for email={user_credentials.email}", file=__import__('sys').stderr)
+    except Exception:
+        pass
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -108,6 +123,10 @@ def login(user_credentials: UsuarioLogin, db: Session = Depends(get_db), request
         data={"id": user.id, "email": user.email},
         expires_delta=access_token_expires
     )
+    try:
+        print(f"[auth.login] issuing token for user id={user.id} email={user.email} responsavel_id={responsavel_id}", file=__import__('sys').stderr)
+    except Exception:
+        pass
     # Tentar achar um responsável com o mesmo e-mail do usuário
     responsavel = db.query(Responsavel).filter(Responsavel.email == user.email).first()
     responsavel_id = responsavel.id if responsavel else None

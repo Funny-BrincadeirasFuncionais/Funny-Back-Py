@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+from datetime import datetime
 from .crianca import CriancaResponse
 from .atividade import AtividadeResponse
 from .responsavel import ResponsavelResponse
@@ -77,6 +78,7 @@ class ProgressoUpdate(BaseModel):
 
 class ProgressoResponse(ProgressoBase):
     id: int
+    created_at: datetime  # Data de criação/realização da atividade
     crianca: Optional[CriancaResponse] = None
     atividade: Optional[AtividadeResponse] = None
     # Return only the responsavel_id to avoid serializing nested ORM objects

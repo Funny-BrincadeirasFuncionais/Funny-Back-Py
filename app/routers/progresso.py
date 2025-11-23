@@ -298,3 +298,40 @@ def get_resumo_progresso_crianca(
         concluidas=concluidas,
         media_pontuacao=round(media_pontuacao, 2)
     )
+
+
+@router.get("/turma/{turma_id}", response_model=List[ProgressoResponse])
+def get_progresso_turma(
+    turma_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Buscar todos os progressos de uma turma (flattened across suas crianças).
+
+    Retorna os registros de `Progresso` das crianças que pertencem à turma
+    ordenados por `created_at` (mais recentes primeiro). Util para permitir
+    que o front-end recupere todos os progressos de uma turma em uma única
+    chamada em vez de consultar cada criança separadamente.
+    """
+    # Verificar se a turma existe
+    turma = db.query(Turma).filter(Turma.id == turma_id).first()
+    if not turma:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
+
+    # Obter ids das crianças na turma
+    criancas = db.query(Crianca).filter(Crianca.turma_id == turma_id).all()
+    if not criancas:
+        return []
+
+    crianca_ids = [c.id for c in criancas]
+
+    # Buscar todos os progressos para essas crianças
+    progressos = db.query(Progresso).filter(Progresso.crianca_id.in_(crianca_ids)).order_by(Progresso.created_at.desc()).all()
+
+    # Log para debug (temporário)
+    try:
+        logger.info(f"get_progresso_turma turma_id={turma_id} found {len(progressos)} progressos across {len(crianca_ids)} criancas")
+    except Exception:
+        pass
+
+    return progressos

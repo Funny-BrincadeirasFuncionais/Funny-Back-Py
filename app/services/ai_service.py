@@ -291,18 +291,61 @@ class AIService:
     async def gerar_relatorio_turma(self, db: Session, turma_id: int = None, periodo_dias: int = None) -> RelatorioTurmaResponse:
         """Gera relatório da turma usando IA"""
         dados_turma = self._prepare_turma_data(db, turma_id=turma_id, periodo_dias=periodo_dias)
-        
+        # Compute accurate numeric aggregates from the prepared turma data so the AI
+        # receives reliable numbers and cannot hallucinate totals or percentages.
+        # Flatten all progressos across children
+        all_progressos = []
+        for dc in dados_turma.criancas:
+            for p in dc.progressos:
+                # ensure keys exist
+                all_progressos.append({
+                    "crianca_id": dc.id,
+                    "pontuacao": p.get("pontuacao", 0),
+                    "concluida": bool(p.get("concluida", False)),
+                    "atividade_titulo": p.get("atividade_titulo")
+                })
+
+        total_criancas = dados_turma.total_criancas
+        total_atividades = len(dados_turma.atividades_disponiveis or [])
+
+        # overall average score
+        pontuacoes = [p["pontuacao"] for p in all_progressos if p.get("pontuacao") is not None]
+        pontuacao_media = round((sum(pontuacoes) / len(pontuacoes)) if len(pontuacoes) > 0 else 0, 2)
+
+        # taxa_conclusao computed as percent of children with at least one concluida == True
+        crianças_com_conclusao = set(p["crianca_id"] for p in all_progressos if p.get("concluida"))
+        taxa_conclusao = round((len(crianças_com_conclusao) / total_criancas) * 100, 2) if total_criancas > 0 else 0
+
+        # distribuicao_diagnosticos already available in dados_turma.estatisticas_gerais
+        distribuicao_diagnosticos = dados_turma.estatisticas_gerais.get("distribuicao_diagnosticos", {}) if dados_turma.estatisticas_gerais else {}
+
+        computed_resumo_geral = {
+            "total_criancas": total_criancas,
+            "total_atividades": total_atividades
+        }
+
+        computed_performance_media = {
+            "pontuacao_media": pontuacao_media,
+            "taxa_conclusao": taxa_conclusao,
+            "tempo_medio_minutos": dados_turma.estatisticas_gerais.get("tempo_medio_minutos") if dados_turma.estatisticas_gerais else None
+        }
+
+        # Instruct the AI to use these precomputed numeric aggregates and not to alter them
         prompt = f"""
-        Você é um especialista em terapia ocupacional e desenvolvimento infantil. 
+        Você é um especialista em terapia ocupacional e desenvolvimento infantil.
         Analise os dados da turma abaixo e gere um relatório estruturado em JSON.
-        
-        IMPORTANTE: As atividades são mini-jogos educativos com pontuação de 0 a 10. 
-        As categorias dos mini-jogos são: Matemáticas, Português, Lógica ou Cotidiano.
-        
-        DADOS DA TURMA:
+
+        IMPORTANTE: Não altere nem re-calcule os valores numéricos que foram pré-calculados
+        pelo sistema — use-os como verdadeiros. Estes valores foram obtidos a partir dos
+        registros de progresso no banco de dados.
+
+        AGREGADOS PRÉ-COMPUTADOS (use estes números):
+        {json.dumps({"resumo_geral_turma": computed_resumo_geral, "performance_media": computed_performance_media, "distribuicao_diagnosticos": distribuicao_diagnosticos}, ensure_ascii=False)}
+
+        DADOS DA TURMA (detalhes):
         {dados_turma.json()}
-        
-        Gere um relatório JSON com a seguinte estrutura:
+
+        Gere um relatório JSON com a seguinte estrutura (os campos numéricos acima devem refletir os valores pré-computados):
         {{
             "resumo_geral_turma": {{
                 "total_criancas": "number",
@@ -319,26 +362,31 @@ class AIService:
             ],
             "resumo": "resumo executivo curto (2-3 parágrafos) destacando os principais pontos do relatório da turma"
         }}
-        
-        Analise padrões coletivos nos mini-jogos, identifique necessidades comuns, 
-        categorize por tipo de mini-jogo (Matemáticas, Português, Lógica, Cotidiano) 
+
+        Analise padrões coletivos nos mini-jogos, identifique necessidades comuns,
+        categorize por tipo de mini-jogo (Matemáticas, Português, Lógica, Cotidiano)
         e sugira estratégias grupais baseadas no desempenho médio (0-10) da turma.
         """
-        
+
         messages = [
             {"role": "system", "content": "Você é um especialista em terapia ocupacional e desenvolvimento infantil."},
             {"role": "user", "content": prompt}
         ]
-        
+
         response = await self._make_openai_request(messages)
-        relatorio_data = json.loads(response["choices"][0]["message"]["content"])
-        
+        relatorio_data = json.loads(response["choices"][0]["message"]["content"]) if response and response.get("choices") else {}
+
+        # Overwrite numeric aggregates in the AI response with computed values to guarantee accuracy
+        relatorio_data["resumo_geral_turma"] = computed_resumo_geral
+        relatorio_data["distribuicao_diagnosticos"] = distribuicao_diagnosticos
+        relatorio_data["performance_media"] = computed_performance_media
+
         return RelatorioTurmaResponse(
-            total_criancas=dados_turma.total_criancas,
-            resumo_geral_turma=relatorio_data["resumo_geral_turma"],
-            distribuicao_diagnosticos=relatorio_data["distribuicao_diagnosticos"],
-            performance_media=relatorio_data["performance_media"],
-            atividades_mais_efetivas=relatorio_data["atividades_mais_efetivas"],
+            total_criancas=total_criancas,
+            resumo_geral_turma=relatorio_data.get("resumo_geral_turma", computed_resumo_geral),
+            distribuicao_diagnosticos=relatorio_data.get("distribuicao_diagnosticos", distribuicao_diagnosticos),
+            performance_media=relatorio_data.get("performance_media", computed_performance_media),
+            atividades_mais_efetivas=relatorio_data.get("atividades_mais_efetivas", []),
             resumo=relatorio_data.get("resumo", ""),
             data_geracao=datetime.now(),
             periodo_analisado=f"Últimos {periodo_dias} dias" if periodo_dias else "Todo o histórico"

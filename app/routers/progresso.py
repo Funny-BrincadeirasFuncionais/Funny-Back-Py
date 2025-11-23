@@ -27,13 +27,14 @@ class RegistrarMiniJogoRequest(BaseModel):
     """Request para registrar um mini-jogo completo
     O front roda o mini-jogo e envia apenas: nota, categoria e aluno
     """
-    pontuacao: int = Field(..., ge=0, le=10, description="Pontuação obtida no mini-jogo (0 a 10)")
+    pontuacao: Optional[float] = Field(None, ge=0, description="Pontuação obtida no mini-jogo (pode ser decimal). Se omitida, o servidor pode calcular.")
     categoria: str = Field(..., description="Categoria do mini-jogo: Matemáticas, Português, Lógica ou Cotidiano")
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
     titulo: str = Field(..., description="Título da atividade gerada (deve ser enviado pelo front)")
     descricao: str = Field(..., description="Descrição da atividade gerada (deve ser enviada pelo front)")
     observacoes: Optional[str] = Field(None, description="Observações opcionais sobre o desempenho")
     tempo_segundos: Optional[int] = Field(None, ge=0, description="Tempo em segundos para completar a atividade (opcional)")
+    movimentos: Optional[int] = Field(None, ge=0, description="Número de movimentos realizados (opcional) - usado por alguns jogos para calcular pontuação)")
 
 
 @router.post("/registrar-minijogo", response_model=ProgressoResponse)
@@ -76,12 +77,38 @@ def registrar_minijogo(
             detail=f"Categoria deve ser uma das seguintes: {', '.join(categorias_validas)}"
         )
     
-    # Validar pontuação
-    if request.pontuacao < 0 or request.pontuacao > 10:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pontuação deve estar entre 0 e 10"
-        )
+    # Normalize / validate pontuação when provided (non-negative). For some jogos
+    # (ex: Jogo da Memória) the server will compute the score using `movimentos`.
+    if request.pontuacao is not None and request.pontuacao < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Pontuação deve ser maior ou igual a 0")
+
+    # Special-case: Jogo da Memória scoring rules
+    titulo_norm = (request.titulo or '').lower()
+    computed_score: Optional[float] = None
+    if 'memória' in titulo_norm or 'memoria' in titulo_norm or 'jogo da memória' in titulo_norm or 'memory' in titulo_norm:
+        # Max score is 10. If movimentos provided, apply reduction: after 8 moves, -0.1 per extra move
+        if request.movimentos is not None:
+            moves = int(request.movimentos)
+            if moves <= 8:
+                computed_score = 10.0
+            else:
+                computed_score = max(0.0, 10.0 - 0.1 * (moves - 8))
+        else:
+            # Fallback: if client sent a score on 0-100 scale, normalize to 0-10
+            if request.pontuacao is not None:
+                try:
+                    v = float(request.pontuacao)
+                    if v > 10 and v <= 100:
+                        computed_score = v / 10.0
+                    else:
+                        computed_score = v
+                except Exception:
+                    computed_score = 10.0
+            else:
+                computed_score = 10.0
+
+    # Use computed_score when present, otherwise prefer provided pontuacao (or default to 0)
+    effective_score = computed_score if computed_score is not None else (float(request.pontuacao) if request.pontuacao is not None else 0.0)
     
     try:
         # Buscar ou criar atividade (mesmo título e categoria = mesma atividade)
@@ -126,7 +153,7 @@ def registrar_minijogo(
 
         if progresso_existente:
             # Atualizar progresso existente ao invés de criar novo
-            progresso_existente.pontuacao = request.pontuacao
+            progresso_existente.pontuacao = effective_score
             progresso_existente.observacoes = request.observacoes
             progresso_existente.concluida = True
             progresso_existente.responsavel_id = responsavel_id
@@ -140,7 +167,7 @@ def registrar_minijogo(
         else:
             # Criar novo progresso apenas se não existir
             novo_progresso = Progresso(
-                pontuacao=request.pontuacao,
+                pontuacao=effective_score,
                 observacoes=request.observacoes,
                 concluida=True,  # Se chegou aqui, foi concluída
                 crianca_id=request.crianca_id,

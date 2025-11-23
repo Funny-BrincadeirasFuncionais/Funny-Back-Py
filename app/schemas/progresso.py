@@ -7,7 +7,7 @@ from .responsavel import ResponsavelResponse
 
 
 class ProgressoBase(BaseModel):
-    pontuacao: int = Field(..., ge=0, description="Pontuação do mini-jogo")
+    pontuacao: float = Field(..., ge=0, description="Pontuação do mini-jogo (pode ser decimal)")
     observacoes: Optional[str] = None
     concluida: bool = True  # Se chegou no back, foi concluída
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
@@ -32,7 +32,7 @@ class ProgressoBase(BaseModel):
 
 class ProgressoCreate(BaseModel):
     """Schema para criar progresso - front-end envia apenas crianca_id, atividade_id, pontuacao, observacoes e concluida"""
-    pontuacao: int = Field(..., ge=0, description="Pontuação do mini-jogo")
+    pontuacao: float = Field(..., ge=0, description="Pontuação do mini-jogo (pode ser decimal)")
     observacoes: Optional[str] = None
     concluida: bool = Field(default=True, description="Se a atividade foi concluída")
     crianca_id: int = Field(..., description="ID do aluno que realizou o mini-jogo")
@@ -56,7 +56,7 @@ class ProgressoCreate(BaseModel):
 
 
 class ProgressoUpdate(BaseModel):
-    pontuacao: Optional[int] = Field(None, ge=0, description="Pontuação do mini-jogo")
+    pontuacao: Optional[float] = Field(None, ge=0, description="Pontuação do mini-jogo (pode ser decimal)")
     observacoes: Optional[str] = None
     concluida: Optional[bool] = None
     tempo_segundos: Optional[int] = Field(None, ge=0, description="Tempo em segundos para completar a atividade (opcional)")

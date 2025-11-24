@@ -11,7 +11,8 @@ class Progresso(Base):
     __tablename__ = "progresso"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    pontuacao = Column(Integer, nullable=False)  # Pontuação (pode ser qualquer valor >= 0)
+    from sqlalchemy import Float
+    pontuacao = Column(Float, nullable=False)  # Pontuação agora aceita valores decimais (>= 0)
     observacoes = Column(Text, nullable=True)
     concluida = Column(Boolean, default=True)  # Front-end sempre envia como true
     crianca_id = Column(Integer, ForeignKey("criancas.id"), nullable=False)  # Aluno
